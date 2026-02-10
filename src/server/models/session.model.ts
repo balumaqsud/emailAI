@@ -22,7 +22,7 @@ const SessionSchema = new Schema<ISession>(
     },
     refreshTokenHash: {
       type: String,
-      required: true,
+      required: false,
     },
     deviceName: {
       type: String,

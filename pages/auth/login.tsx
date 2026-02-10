@@ -37,13 +37,13 @@ export default function LoginPage() {
       <div className={styles.card}>
         <h1 className={styles.title}>Log in</h1>
         <p className={styles.subtitle}>
-          Sign in with your nickname or email to access your inbox.
+          Sign in with your username or email to access your inbox.
         </p>
 
         <form className={styles.form} onSubmit={handleSubmit}>
           <div className={styles.field}>
             <label className={styles.label} htmlFor="identifier">
-              Nickname or email
+              Username or email
             </label>
             <input
               id="identifier"

@@ -42,16 +42,16 @@ export default function RegisterPage() {
       <div className={styles.card}>
         <h1 className={styles.title}>Create your account</h1>
         <p className={styles.subtitle}>
-          Choose a nickname and password to get started.
+          Choose a username and password to get started.
         </p>
 
         <form className={styles.form} onSubmit={handleSubmit}>
           <div className={styles.field}>
-            <label className={styles.label} htmlFor="nickname">
-              Nickname
+            <label className={styles.label} htmlFor="username">
+              Username
             </label>
             <input
-              id="nickname"
+              id="username"
               className={styles.input}
               type="text"
               autoComplete="username"
