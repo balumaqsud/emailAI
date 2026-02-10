@@ -50,3 +50,9 @@ export type SendMailInput = {
   subject?: string;
   bodyText: string;
 };
+
+export type EmailAnalysis = {
+  type: string;
+  extractedData: Record<string, unknown> | null;
+  confidence: number;
+} | null;

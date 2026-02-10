@@ -1,4 +1,7 @@
-import type { HTMLAttributes } from "react";
+import { useState, type HTMLAttributes } from "react";
+import { useAuth } from "@/src/lib/auth/context";
+import { getEmailAnalysis } from "@/src/lib/mail/api";
+import type { EmailAnalysis } from "@/src/lib/mail/types";
 import { Badge } from "../ui/Badge";
 import { Labels } from "./Labels";
 
@@ -7,6 +10,7 @@ export interface MailListItemProps extends HTMLAttributes<HTMLDivElement> {
   subject: string;
   preview: string;
   time: string;
+  messageId: string;
   meta?: string;
   labels?: string[];
   tag?: "Meeting" | "Important" | "Work" | "Shopping" | "Finance" | "None";
@@ -30,6 +34,7 @@ export function MailListItem({
   subject,
   preview,
   time,
+  messageId,
   meta,
   labels = [],
   tag = "None",
@@ -50,6 +55,49 @@ export function MailListItem({
       ? `${preview.slice(0, MAX_PREVIEW_LENGTH).trimEnd()}…`
       : preview;
 
+  const { accessToken } = useAuth();
+  const [expanded, setExpanded] = useState(false);
+  const [analysis, setAnalysis] = useState<EmailAnalysis>(null);
+  const [loadingAnalysis, setLoadingAnalysis] = useState(false);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
+
+  const handleToggle = async () => {
+    const nextExpanded = !expanded;
+    setExpanded(nextExpanded);
+
+    if (
+      nextExpanded &&
+      !analysis &&
+      !loadingAnalysis &&
+      accessToken
+    ) {
+      try {
+        setLoadingAnalysis(true);
+        setAnalysisError(null);
+        const data = await getEmailAnalysis(messageId, accessToken);
+        setAnalysis(data);
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : "Failed to load AI summary.";
+        setAnalysisError(message);
+      } finally {
+        setLoadingAnalysis(false);
+      }
+    }
+  };
+
+  const confidencePercent =
+    analysis && typeof analysis.confidence === "number"
+      ? Math.round(analysis.confidence * 100)
+      : null;
+
+  const typeLabel =
+    analysis?.type === "job_application"
+      ? "Job application"
+      : analysis?.type
+        ? analysis.type[0]?.toUpperCase() + analysis.type.slice(1)
+        : null;
+
   const tagInfo = tagStyles[tag];
 
   return (
@@ -61,6 +109,7 @@ export function MailListItem({
       ]
         .filter(Boolean)
         .join(" ")}
+      onClick={handleToggle}
       {...props}
     >
       <div className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sky-500 text-[13px] font-semibold text-white">
@@ -95,6 +144,48 @@ export function MailListItem({
           )}
           {labels.length > 0 && <Labels labels={labels} />}
         </div>
+
+        {expanded && (
+          <div className="mt-2 rounded-xl bg-slate-50 px-3 py-2 text-[10px] text-slate-600 ring-1 ring-slate-100">
+            {loadingAnalysis && (
+              <p className="text-slate-400">Loading AI summary…</p>
+            )}
+            {analysisError && (
+              <p className="text-rose-600">{analysisError}</p>
+            )}
+            {!loadingAnalysis && !analysisError && analysis && (
+              <>
+                <div className="mb-1 flex items-center justify-between gap-2">
+                  {typeLabel && (
+                    <span className="inline-flex items-center rounded-full bg-sky-100 px-2 py-0.5 text-[9px] font-medium text-sky-700">
+                      {typeLabel}
+                    </span>
+                  )}
+                  {confidencePercent !== null && (
+                    <span className="text-[9px] text-slate-400">
+                      Confidence: {confidencePercent}%
+                    </span>
+                  )}
+                </div>
+                {"summary" in analysis.extractedData! &&
+                  (analysis.extractedData as { summary?: unknown }).summary && (
+                    <p className="mb-1 text-[10px] text-slate-700">
+                      {
+                        (analysis.extractedData as {
+                          summary?: string;
+                        }).summary
+                      }
+                    </p>
+                  )}
+              </>
+            )}
+            {!loadingAnalysis && !analysisError && !analysis && (
+              <p className="text-slate-400">
+                No AI summary available yet for this email.
+              </p>
+            )}
+          </div>
+        )}
       </div>
     </article>
   );

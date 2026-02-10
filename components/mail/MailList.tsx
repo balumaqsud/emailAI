@@ -53,6 +53,7 @@ export function MailList({
             subject={subject}
             preview={preview}
             time={time}
+            messageId={item.messageId}
             unread={!item.isRead}
             onClick={() => onItemClick?.(item)}
           />

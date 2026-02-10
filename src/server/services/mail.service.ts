@@ -13,11 +13,12 @@ import {
 } from "@/src/server/dtos/message.dto";
 import { MAIL_FOLDERS } from "@/src/lib/constants/folders";
 import { encodeCursor, decodeCursor } from "@/src/server/utils/pagination";
+import { HttpError, badRequest, notFound } from "@/src/server/utils/httpErrors";
+import { classifyEmail } from "@/src/server/ai/services/classifyEmail.service";
 import {
-  HttpError,
-  badRequest,
-  notFound,
-} from "@/src/server/utils/httpErrors";
+  extractEmail,
+  type ExtractEmailParams,
+} from "@/src/server/ai/services/extractEmail.service";
 import { getOrCreateDirectConversation } from "./conversation.service";
 
 export type SendMailResult = {
@@ -47,9 +48,43 @@ export type ListMailResult = {
   nextCursor: string | null;
 };
 
+type AnalyzeEmailPayload = {
+  userId: string;
+  messageId: string;
+  subject?: string;
+  from?: string;
+  bodyText: string;
+};
+
 function normalizeSnippet(bodyText: string): string {
   const collapsed = bodyText.replace(/\s+/g, " ").trim();
   return collapsed.slice(0, 180);
+}
+
+async function analyzeEmail(payload: AnalyzeEmailPayload): Promise<void> {
+  try {
+    const classification = await classifyEmail({
+      userId: payload.userId,
+      messageId: payload.messageId,
+      subject: payload.subject,
+      from: payload.from,
+      bodyText: payload.bodyText,
+    });
+
+    const extractParams: ExtractEmailParams = {
+      userId: payload.userId,
+      messageId: payload.messageId,
+      type: classification.type,
+      subject: payload.subject,
+      from: payload.from,
+      bodyText: payload.bodyText,
+    };
+
+    await extractEmail(extractParams);
+  } catch (error) {
+    // AI analysis should never break email sending; log and continue.
+    console.error("Error during AI email analysis:", error);
+  }
 }
 
 export async function sendMail(params: {
@@ -61,6 +96,8 @@ export async function sendMail(params: {
   const validated = SendMessageDto.parse(payload);
 
   const senderObjectId = new Types.ObjectId(senderId);
+
+  let analysisPayload: AnalyzeEmailPayload | null = null;
 
   const session: ClientSession = await mongoose.startSession();
 
@@ -161,9 +198,22 @@ export async function sendMail(params: {
         { session },
       );
 
+      const messageIdHex = message._id.toHexString();
+
       result = {
-        messageId: message._id.toHexString(),
+        messageId: messageIdHex,
         conversationId: conversation._id.toHexString(),
+      };
+
+      // Prepare AI analysis payload (classification + extraction) using
+      // stable, committed data. This will be executed asynchronously
+      // after the transaction completes.
+      analysisPayload = {
+        userId: senderObjectId.toHexString(),
+        messageId: messageIdHex,
+        subject: validated.subject ?? undefined,
+        from: sender.nickname,
+        bodyText: validated.bodyText,
       };
     });
 
@@ -173,6 +223,12 @@ export async function sendMail(params: {
         "INTERNAL_ERROR",
         "Failed to send message transactionally.",
       );
+    }
+
+    if (analysisPayload) {
+      // Fire-and-forget AI analysis. This must not block or affect
+      // the main email sending flow.
+      void analyzeEmail(analysisPayload);
     }
 
     return result;
@@ -223,9 +279,7 @@ export async function listMail(params: {
 
   // Preload sender nicknames so the UI can show human-friendly names
   const senderIds = Array.from(
-    new Set(
-      pageDocs.map((mb) => mb.messageId.senderId.toHexString()),
-    ),
+    new Set(pageDocs.map((mb) => mb.messageId.senderId.toHexString())),
   );
 
   const senderObjectIds = senderIds.map((id) => new Types.ObjectId(id));
@@ -408,4 +462,3 @@ export async function deleteForUser(params: {
     await Message.deleteOne({ _id: messageObjectId }).exec();
   }
 }
-

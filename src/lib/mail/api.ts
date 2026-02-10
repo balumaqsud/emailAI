@@ -1,4 +1,5 @@
 import type {
+  EmailAnalysis,
   MailboxListResponse,
   MailFolder,
   MailMessageDetail,
@@ -35,6 +36,15 @@ type ApiSendSuccess = {
 type ApiGetMessageSuccess = {
   ok: true;
   data: MailMessageDetail;
+};
+
+type ApiGetAnalysisSuccess = {
+  ok: true;
+  data: {
+    type: string;
+    extractedData: Record<string, unknown> | null;
+    confidence: number;
+  } | null;
 };
 
 async function parseJson<T>(res: Response): Promise<T | ApiErrorShape> {
@@ -145,4 +155,30 @@ export async function getMessage(
   const data = await parseJson<ApiGetMessageSuccess>(res);
   const okData = ensureOk<ApiGetMessageSuccess>(res, data);
   return okData.data;
+}
+
+export async function getEmailAnalysis(
+  messageId: string,
+  token: string,
+): Promise<EmailAnalysis> {
+  const res = await fetch(`/api/ai/email/${messageId}`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    credentials: "include",
+  });
+
+  const data = await parseJson<ApiGetAnalysisSuccess>(res);
+  const okData = ensureOk<ApiGetAnalysisSuccess>(res, data);
+
+  if (!okData.data) {
+    return null;
+  }
+
+  return {
+    type: okData.data.type,
+    extractedData: okData.data.extractedData,
+    confidence: okData.data.confidence,
+  };
 }
