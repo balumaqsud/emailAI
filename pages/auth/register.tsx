@@ -28,7 +28,7 @@ export default function RegisterPage() {
       };
       const result = await register(payload);
       signIn(result);
-      await router.push("/app/inbox");
+      await router.push("/dashboard");
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unable to sign up.";
       setError(message);

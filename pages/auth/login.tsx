@@ -22,7 +22,7 @@ export default function LoginPage() {
     try {
       const result = await login({ identifier, password });
       signIn(result);
-      await router.push("/app/inbox");
+      await router.push("/dashboard");
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Unable to log in.";

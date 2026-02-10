@@ -48,8 +48,8 @@ export default function InboxPage() {
               marginBottom: "1.5rem",
             }}
           >
-            This is your inbox placeholder. Email functionality will appear
-            here later.
+            This is your inbox placeholder. Email functionality will appear here
+            later.
           </p>
 
           <button
