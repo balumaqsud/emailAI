@@ -1,6 +1,7 @@
 import type {
   MailboxListResponse,
   MailFolder,
+  MailMessageDetail,
   SendMailInput,
 } from "./types";
 
@@ -31,6 +32,11 @@ type ApiSendSuccess = {
   };
 };
 
+type ApiGetMessageSuccess = {
+  ok: true;
+  data: MailMessageDetail;
+};
+
 async function parseJson<T>(res: Response): Promise<T | ApiErrorShape> {
   try {
     return (await res.json()) as T | ApiErrorShape;
@@ -39,10 +45,7 @@ async function parseJson<T>(res: Response): Promise<T | ApiErrorShape> {
   }
 }
 
-function ensureOk<T>(
-  res: Response,
-  data: T | ApiErrorShape,
-): T {
+function ensureOk<T>(res: Response, data: T | ApiErrorShape): T {
   if (!res.ok) {
     if (!("ok" in (data as ApiErrorShape))) {
       throw new Error(`Request failed with status ${res.status}.`);
@@ -127,3 +130,19 @@ export async function markRead(
   }
 }
 
+export async function getMessage(
+  messageId: string,
+  token: string,
+): Promise<MailMessageDetail> {
+  const res = await fetch(`/api/mail/${messageId}`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    credentials: "include",
+  });
+
+  const data = await parseJson<ApiGetMessageSuccess>(res);
+  const okData = ensureOk<ApiGetMessageSuccess>(res, data);
+  return okData.data;
+}

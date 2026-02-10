@@ -35,6 +35,7 @@ export type ListMailItem = {
     subject?: string;
     snippet: string;
     senderId: string;
+    senderNickname?: string;
     toUserIds: string[];
     createdAt: string;
     conversationId: string;
@@ -220,8 +221,27 @@ export async function listMail(params: {
   const hasMore = castDocs.length > effectiveLimit;
   const pageDocs = hasMore ? castDocs.slice(0, effectiveLimit) : castDocs;
 
+  // Preload sender nicknames so the UI can show human-friendly names
+  const senderIds = Array.from(
+    new Set(
+      pageDocs.map((mb) => mb.messageId.senderId.toHexString()),
+    ),
+  );
+
+  const senderObjectIds = senderIds.map((id) => new Types.ObjectId(id));
+  const senderUsers = await User.find({ _id: { $in: senderObjectIds } })
+    .select({ _id: 1, nickname: 1 })
+    .exec();
+
+  const senderNicknameById = new Map<string, string>();
+  senderUsers.forEach((user) => {
+    senderNicknameById.set(user._id.toHexString(), user.nickname);
+  });
+
   const items: ListMailItem[] = pageDocs.map((mb) => {
     const msg = mb.messageId;
+    const senderId = msg.senderId.toHexString();
+    const senderNickname = senderNicknameById.get(senderId);
     return {
       mailboxId: mb._id.toHexString(),
       messageId: msg._id.toHexString(),
@@ -231,7 +251,8 @@ export async function listMail(params: {
       message: {
         subject: msg.subject,
         snippet: msg.snippet,
-        senderId: msg.senderId.toHexString(),
+        senderId,
+        senderNickname,
         toUserIds: msg.toUserIds.map((id) => id.toHexString()),
         createdAt: msg.createdAt.toISOString(),
         conversationId: msg.conversationId.toHexString(),
@@ -258,6 +279,7 @@ export async function getMessageForUser(params: {
   body: IMessage["body"];
   attachments?: IMessage["attachments"];
   senderId: string;
+  senderNickname?: string;
   toUserIds: string[];
   createdAt: string;
   delivery: IMessage["delivery"];
@@ -281,6 +303,10 @@ export async function getMessageForUser(params: {
     throw notFound("Message not found.");
   }
 
+  const senderUser = await User.findById(message.senderId)
+    .select({ nickname: 1 })
+    .exec();
+
   return {
     messageId: message._id.toHexString(),
     conversationId: message.conversationId.toHexString(),
@@ -288,6 +314,7 @@ export async function getMessageForUser(params: {
     body: message.body,
     attachments: message.attachments,
     senderId: message.senderId.toHexString(),
+    senderNickname: senderUser?.nickname,
     toUserIds: message.toUserIds.map((id) => id.toHexString()),
     createdAt: message.createdAt.toISOString(),
     delivery: message.delivery,

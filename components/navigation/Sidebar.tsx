@@ -3,14 +3,23 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { SidebarItem } from "./SidebarItem";
 import { SidebarSection } from "./SidebarSection";
+import type { MailFolder } from "@/src/lib/mail/types";
 
 export interface SidebarProps {
   children?: ReactNode;
+  currentFolder?: MailFolder;
+  onSelectFolder?: (folder: MailFolder) => void;
 }
 
-export function Sidebar({ children }: SidebarProps) {
+export function Sidebar({
+  children,
+  currentFolder = "inbox",
+  onSelectFolder,
+}: SidebarProps) {
   const router = useRouter();
   const isDashboard = router.pathname === "/dashboard";
+  const isInbox = currentFolder === "inbox";
+  const isSent = currentFolder === "sent";
 
   return (
     <aside className="flex w-60 flex-col gap-4 rounded-3xl bg-slate-50/80 text-slate-800 px-3 py-4 text-xs ring-1 ring-slate-100">
@@ -33,9 +42,20 @@ export function Sidebar({ children }: SidebarProps) {
       </SidebarSection>
 
       <SidebarSection title="Mail">
-        <Link href="/dashboard">
-          <SidebarItem label="Inbox" active={isDashboard} />
-        </Link>
+        <button
+          type="button"
+          onClick={() => onSelectFolder?.("inbox")}
+          className="w-full text-left"
+        >
+          <SidebarItem label="Inbox" active={isInbox} />
+        </button>
+        <button
+          type="button"
+          onClick={() => onSelectFolder?.("sent")}
+          className="w-full text-left"
+        >
+          <SidebarItem label="Sent" active={isSent} />
+        </button>
       </SidebarSection>
 
       {children}

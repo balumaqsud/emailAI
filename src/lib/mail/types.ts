@@ -12,6 +12,7 @@ export type MailboxItemSummary = {
     subject?: string;
     snippet: string;
     senderId: string;
+    senderNickname?: string;
     toUserIds: string[];
     createdAt: string;
     conversationId: string;
@@ -23,9 +24,29 @@ export type MailboxListResponse = {
   nextCursor: string | null;
 };
 
+export type MailMessageDetail = {
+  messageId: string;
+  conversationId: string;
+  subject?: string;
+  body: {
+    text: string;
+    html?: string;
+  };
+  attachments?: {
+    filename: string;
+    mimeType: string;
+    size: number;
+    storageKey: string;
+  }[];
+  senderId: string;
+  senderNickname?: string;
+  toUserIds: string[];
+  createdAt: string;
+  delivery: "sent" | "delivered" | "failed";
+};
+
 export type SendMailInput = {
   toNickname: string;
   subject?: string;
   bodyText: string;
 };
-

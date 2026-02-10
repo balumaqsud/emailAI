@@ -5,6 +5,7 @@ import styles from "@/styles/Mail.module.css";
 
 export interface MailListProps extends HTMLAttributes<HTMLDivElement> {
   items: MailboxItemSummary[];
+  onItemClick?: (item: MailboxItemSummary) => void;
 }
 
 const timeFormatter = new Intl.DateTimeFormat(undefined, {
@@ -16,6 +17,7 @@ const timeFormatter = new Intl.DateTimeFormat(undefined, {
 
 export function MailList({
   items,
+  onItemClick,
   className = "",
   ...props
 }: MailListProps) {
@@ -36,8 +38,13 @@ export function MailList({
         const createdAt = new Date(item.message.createdAt);
         const time = timeFormatter.format(createdAt);
         const subject = item.message.subject ?? "(no subject)";
-        const preview = item.message.snippet;
-        const from = item.message.senderId;
+        const rawSnippet = item.message.snippet;
+        const MAX_PREVIEW_LENGTH = 150;
+        const preview =
+          rawSnippet.length > MAX_PREVIEW_LENGTH
+            ? `${rawSnippet.slice(0, MAX_PREVIEW_LENGTH).trimEnd()}…`
+            : rawSnippet;
+        const from = item.message.senderNickname ?? item.message.senderId;
 
         return (
           <MailListItem
@@ -47,10 +54,10 @@ export function MailList({
             preview={preview}
             time={time}
             unread={!item.isRead}
+            onClick={() => onItemClick?.(item)}
           />
         );
       })}
     </div>
   );
 }
-

@@ -4,22 +4,27 @@ import { PageContainer } from "./PageContainer";
 import { Topbar } from "../header/Topbar";
 import { InsightsPanel } from "../dashboard/InsightsPanel";
 import styles from "@/styles/AppLayout.module.css";
+import type { MailFolder } from "@/src/lib/mail/types";
 
 export interface AppLayoutProps {
   children: ReactNode;
   onLogout?: () => void;
   onCompose?: () => void;
+  currentFolder?: MailFolder;
+  onSelectFolder?: (folder: MailFolder) => void;
 }
 
 export function AppLayout({
   children,
   onLogout,
   onCompose,
+  currentFolder,
+  onSelectFolder,
 }: AppLayoutProps) {
   return (
     <div className={styles.root}>
       <PageContainer>
-        <Sidebar />
+        <Sidebar currentFolder={currentFolder} onSelectFolder={onSelectFolder} />
         <main className={styles.main}>
           <Topbar onLogout={onLogout} onCompose={onCompose} />
           <div className={styles.mainInner}>

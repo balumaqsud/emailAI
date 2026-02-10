@@ -37,6 +37,19 @@ export function MailListItem({
   className = "",
   ...props
 }: MailListItemProps) {
+  const MAX_SUBJECT_LENGTH = 80;
+  const MAX_PREVIEW_LENGTH = 100;
+
+  const displaySubject =
+    subject.length > MAX_SUBJECT_LENGTH
+      ? `${subject.slice(0, MAX_SUBJECT_LENGTH).trimEnd()}…`
+      : subject;
+
+  const displayPreview =
+    preview.length > MAX_PREVIEW_LENGTH
+      ? `${preview.slice(0, MAX_PREVIEW_LENGTH).trimEnd()}…`
+      : preview;
+
   const tagInfo = tagStyles[tag];
 
   return (
@@ -58,13 +71,11 @@ export function MailListItem({
           <p className="truncate text-[11px] font-semibold text-slate-800">
             {from}
           </p>
-          <p className="whitespace-nowrap text-[10px] text-slate-400">
-            {time}
-          </p>
+          <p className="whitespace-nowrap text-[10px] text-slate-400">{time}</p>
         </div>
         <div className="flex items-center justify-between gap-2">
           <p className="truncate text-[11px] font-semibold text-slate-900">
-            {subject}
+            {displaySubject}
           </p>
           {tag !== "None" && tagInfo.label && (
             <Badge
@@ -75,7 +86,9 @@ export function MailListItem({
             </Badge>
           )}
         </div>
-        <p className="truncate text-[11px] text-slate-500">{preview}</p>
+        <p className="truncate text-[11px] text-slate-500 break-all">
+          {displayPreview}
+        </p>
         <div className="flex items-center justify-between gap-2">
           {meta && (
             <p className="truncate text-[10px] text-slate-400">{meta}</p>
@@ -86,4 +99,3 @@ export function MailListItem({
     </article>
   );
 }
-
