@@ -1,10 +1,12 @@
 import { useRouter } from "next/router";
 import { RequireAuth } from "@/src/lib/auth/routeGuard";
 import { useAuth } from "@/src/lib/auth/context";
+import { AppLayout } from "@/components/layout/AppLayout";
+import { MailList } from "@/components/mail/MailList";
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { user, signOut } = useAuth();
+  const { signOut } = useAuth();
 
   const handleLogout = () => {
     signOut();
@@ -13,64 +15,24 @@ export default function DashboardPage() {
 
   return (
     <RequireAuth>
-      <main
-        style={{
-          minHeight: "100vh",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          padding: "1.5rem",
-          background: "#f3f4f6",
-        }}
-      >
-        <section
-          style={{
-            maxWidth: "640px",
-            width: "100%",
-            background: "#ffffff",
-            borderRadius: "0.75rem",
-            boxShadow: "0 10px 25px rgba(15, 23, 42, 0.12)",
-            padding: "2.5rem 2.75rem",
-          }}
-        >
-          <h1
-            style={{
-              fontSize: "1.9rem",
-              fontWeight: 600,
-              marginBottom: "0.5rem",
-            }}
-          >
-            Welcome, {user?.nickname ?? "there"}
-          </h1>
-          <p
-            style={{
-              fontSize: "0.98rem",
-              color: "#6b7280",
-              marginBottom: "1.75rem",
-            }}
-          >
-            You are logged in. This is your dashboard placeholder; more
-            features will appear here soon.
-          </p>
+      <AppLayout onLogout={handleLogout}>
+        <div className="flex items-center justify-between gap-2 rounded-2xl bg-white/80 px-3 py-2 text-xs shadow-sm ring-1 ring-slate-100">
+          <div className="flex items-center gap-2 text-[11px] text-slate-500">
+            <span className="rounded-lg bg-slate-100 px-2 py-1 font-medium text-slate-700">
+              Inbox
+            </span>
+            <span>24 Unread</span>
+          </div>
+          <div className="flex items-center gap-2 text-[11px] text-slate-400">
+            <span>Sort by</span>
+            <span className="rounded-lg bg-slate-50 px-2 py-1 text-slate-600">
+              Recent
+            </span>
+          </div>
+        </div>
 
-          <button
-            type="button"
-            onClick={handleLogout}
-            style={{
-              padding: "0.7rem 1.2rem",
-              borderRadius: "0.5rem",
-              border: "1px solid #d1d5db",
-              background: "#ffffff",
-              color: "#111827",
-              fontSize: "0.95rem",
-              fontWeight: 500,
-              cursor: "pointer",
-            }}
-          >
-            Log out
-          </button>
-        </section>
-      </main>
+        <MailList className="flex-1 overflow-y-auto pr-1" />
+      </AppLayout>
     </RequireAuth>
   );
 }
