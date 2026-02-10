@@ -16,7 +16,7 @@ export const SendMessageDto = z
   );
 
 export const MarkReadDto = z.object({
-  messageId: z.string().min(1),
+  isRead: z.boolean(),
 });
 
 export type SendMessageDtoInput = z.infer<typeof SendMessageDto>;

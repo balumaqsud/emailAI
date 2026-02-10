@@ -1,0 +1,39 @@
+.root {
+  min-height: 100vh;
+  padding: 1.5rem 1rem;
+  background: #e8f0ff;
+}
+
+.content {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding-left: 0.75rem;
+}
+
+.mainInner {
+  display: flex;
+  flex: 1;
+  gap: 0.75rem;
+  overflow: hidden;
+}
+
+.primaryColumn {
+  display: flex;
+  min-width: 0;
+  flex: 1.7;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.secondaryColumn {
+  width: 18rem;
+  flex-shrink: 0;
+}
+
