@@ -96,12 +96,27 @@ function renderExtractionDetails(
 
   if (type === "meeting") {
     const meeting = data.meeting as Record<string, unknown> | undefined;
+    const contact = data.contact as Record<string, unknown> | undefined;
+    const contactName = contact ? safeStr(contact, "name") : "";
+    const contactEmail = contact ? safeStr(contact, "email") : "";
     const topic = meeting ? safeStr(meeting, "topic") : "";
     const time = meeting ? safeStr(meeting, "proposed_time") : "";
     const location = meeting ? safeStr(meeting, "location") : "";
 
     return (
       <dl className="mt-1 space-y-0.5 text-[11px] text-slate-700">
+        {contactName && (
+          <div>
+            <dt className="inline text-slate-500">Contact: </dt>
+            <dd className="inline font-medium">{contactName}</dd>
+          </div>
+        )}
+        {contactEmail && (
+          <div>
+            <dt className="inline text-slate-500">Email: </dt>
+            <dd className="inline font-medium">{contactEmail}</dd>
+          </div>
+        )}
         {topic && (
           <div>
             <dt className="inline text-slate-500">Topic: </dt>
@@ -130,6 +145,10 @@ function renderExtractionDetails(
     const issue = ticket ? safeStr(ticket, "issue") : "";
     const priority = ticket ? safeStr(ticket, "priority") : "";
     const urgency = ticket ? safeStr(ticket, "urgency_reason") : "";
+    const contact = data.contact as Record<string, unknown> | undefined;
+    const contactName = contact ? safeStr(contact, "name") : "";
+    const contactEmail = contact ? safeStr(contact, "email") : "";
+    const company = safeStr(data, "company");
 
     return (
       <dl className="mt-1 space-y-0.5 text-[11px] text-slate-700">
@@ -137,6 +156,24 @@ function renderExtractionDetails(
           <div>
             <dt className="inline text-slate-500">Intent: </dt>
             <dd className="inline font-medium">{intent}</dd>
+          </div>
+        )}
+        {contactName && (
+          <div>
+            <dt className="inline text-slate-500">Contact: </dt>
+            <dd className="inline font-medium">{contactName}</dd>
+          </div>
+        )}
+        {contactEmail && (
+          <div>
+            <dt className="inline text-slate-500">Email: </dt>
+            <dd className="inline font-medium">{contactEmail}</dd>
+          </div>
+        )}
+        {company && (
+          <div>
+            <dt className="inline text-slate-500">Company: </dt>
+            <dd className="inline font-medium">{company}</dd>
           </div>
         )}
         {issue && (
@@ -296,12 +333,6 @@ export function InboxAiDetailsModal({
                 <p className="text-slate-600">
                   Type:{" "}
                   <span className="font-medium">{classification.type}</span>
-                </p>
-                <p className="text-slate-600">
-                  Confidence:{" "}
-                  <span className="font-medium">
-                    {Math.round(classification.confidence * 100)}%
-                  </span>
                 </p>
               </section>
             )}

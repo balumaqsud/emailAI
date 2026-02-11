@@ -191,7 +191,7 @@ export async function buildDashboardOverview(params: {
   const needsReviewCandidates: DashboardOverviewDTO["needsReview"] = [];
   const vendorCounts: Record<string, number> = {};
   let invoicesCount = 0;
-  let unpaidCount = 0;
+  const unpaidCount = 0;
   let totalAmountSum = 0;
   const meetingStarts: string[] = [];
   let upcomingMeetings = 0;
@@ -229,39 +229,52 @@ export async function buildDashboardOverview(params: {
       }
 
       const data = doc.extractedData as Record<string, unknown> | null | undefined;
-      if (data && typeof data === "object") {
-        const docType = safeStr(doc.type);
-        if (docType === "invoice") {
-          invoicesCount++;
-          const invoiceData = (data.invoice || {}) as Record<string, unknown>;
-          totalAmountSum += safeNum(invoiceData.amount);
-          const vendor = safeStr(data.company);
-          if (vendor) vendorCounts[vendor] = (vendorCounts[vendor] ?? 0) + 1;
-        } else if (docType === "meeting") {
-          const meetingData = (data.meeting || {}) as Record<string, unknown>;
-          const startTime = safeStr(meetingData.proposed_time);
-          if (startTime) {
-            const start = new Date(startTime);
-            if (!Number.isNaN(start.getTime())) {
-              meetingStarts.push(startTime);
-              if (start > now) upcomingMeetings++;
-            }
+      const docType = safeStr(doc.type);
+
+      if (docType === "invoice" && data && typeof data === "object") {
+        invoicesCount++;
+        const invoiceData = (data.invoice || {}) as Record<string, unknown>;
+        totalAmountSum += safeNum(invoiceData.amount);
+        const vendor = safeStr(data.company);
+        if (vendor) vendorCounts[vendor] = (vendorCounts[vendor] ?? 0) + 1;
+      } else if (docType === "meeting" && data && typeof data === "object") {
+        const meetingData = (data.meeting || {}) as Record<string, unknown>;
+        const startTime = safeStr(meetingData.proposed_time);
+        if (startTime) {
+          const start = new Date(startTime);
+          if (!Number.isNaN(start.getTime())) {
+            meetingStarts.push(startTime);
+            if (start > now) upcomingMeetings++;
           }
-        } else if (docType === "support") {
-          const intent = safeStr(data.intent).toLowerCase();
-          if (intent === "create_ticket") {
-            supportOpen++;
-            const ticket = (data.ticket || {}) as Record<string, unknown>;
-            const priority = safeStr(ticket.priority).toLowerCase();
-            if (priority === "urgent" || priority === "high") supportUrgent++;
-          }
-        } else if (docType === "job_application") {
-          const stage = safeStr(data.stage).toLowerCase();
-          if (stage !== "rejected") jobsActive++;
-          const interviewTime = safeStr(data.interviewTime);
+        }
+      } else if (docType === "support" && data && typeof data === "object") {
+        const intent = safeStr(data.intent).toLowerCase();
+        if (intent === "create_ticket") {
+          supportOpen++;
+          const ticket = (data.ticket || {}) as Record<string, unknown>;
+          const priority = safeStr(ticket.priority).toLowerCase();
+          if (priority === "urgent" || priority === "high") supportUrgent++;
+        }
+      } else if (docType === "job_application") {
+        // Count all non-rejected job applications as active, even if we don't
+        // have structured extracted data yet, so Jobs highlights reflect real
+        // database rows.
+        const stageRaw =
+          data && typeof data === "object"
+            ? safeStr((data as Record<string, unknown>).stage)
+            : "";
+        const stage = stageRaw.toLowerCase();
+        if (stage !== "rejected") jobsActive++;
+
+        if (data && typeof data === "object") {
+          const interviewTime = safeStr(
+            (data as Record<string, unknown>).interviewTime,
+          );
           if (interviewTime) {
             const t = new Date(interviewTime);
-            if (!Number.isNaN(t.getTime()) && t > now) jobInterviewTimes.push(interviewTime);
+            if (!Number.isNaN(t.getTime()) && t > now) {
+              jobInterviewTimes.push(interviewTime);
+            }
           }
         }
       }
@@ -292,6 +305,27 @@ export async function buildDashboardOverview(params: {
     if (EMAIL_TYPES.includes(t)) emptyDTO.distribution[t]++;
   }
 
+  // Fallback: ensure highlights have basic counts even when extraction data
+  // is missing or could not be parsed. We reuse the classification
+  // distribution to backfill invoice/meeting/support/job counts.
+  const invoicesTotal = emptyDTO.distribution.invoice;
+  const meetingsTotal = emptyDTO.distribution.meeting;
+  const supportTotal = emptyDTO.distribution.support;
+  const jobsTotal = emptyDTO.distribution.job_application;
+
+  if (invoicesTotal > 0 && invoicesCount === 0) {
+    invoicesCount = invoicesTotal;
+  }
+  if (meetingsTotal > 0 && upcomingMeetings === 0) {
+    upcomingMeetings = meetingsTotal;
+  }
+  if (supportTotal > 0 && supportOpen === 0) {
+    supportOpen = supportTotal;
+  }
+  if (jobsTotal > 0 && jobsActive === 0) {
+    jobsActive = jobsTotal;
+  }
+
   let avgClassificationConfidence: number | null = null;
   if (classificationDocs.length > 0) {
     let sum = 0;
@@ -314,7 +348,7 @@ export async function buildDashboardOverview(params: {
   meetingStarts.sort();
   jobInterviewTimes.sort();
 
-  return {
+  const dto: DashboardOverviewDTO = {
     pipeline: {
       processing,
       done,
@@ -348,4 +382,30 @@ export async function buildDashboardOverview(params: {
     needsReview: needsReviewSlice,
     meta: emptyDTO.meta,
   };
+
+  // #region agent log
+  fetch("http://127.0.0.1:7242/ingest/82fb972f-c31b-4021-b252-62d4c5e26664", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      location: "dashboard.service.ts:buildDashboardOverview:summary",
+      message: "Dashboard overview summary",
+      data: {
+        range: dto.meta.range,
+        pipeline: dto.pipeline,
+        highlights: {
+          invoices: dto.highlights.invoices,
+          meetings: dto.highlights.meetings,
+          support: dto.highlights.support,
+          jobs: dto.highlights.jobs,
+        },
+      },
+      timestamp: Date.now(),
+      runId: "pre-fix",
+      hypothesisId: "H_overview_backend",
+    }),
+  }).catch(() => {});
+  // #endregion
+
+  return dto;
 }

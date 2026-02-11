@@ -9,6 +9,26 @@ export function IdentifiedHighlights({
 }: IdentifiedHighlightsProps) {
   const { invoices, meetings, support, jobs } = highlights;
 
+  // #region agent log
+  fetch("http://127.0.0.1:7242/ingest/82fb972f-c31b-4021-b252-62d4c5e26664", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      location: "components/dashboard/IdentifiedHighlights.tsx:render",
+      message: "IdentifiedHighlights props",
+      data: {
+        invoices,
+        meetings,
+        support,
+        jobs,
+      },
+      timestamp: Date.now(),
+      runId: "pre-fix",
+      hypothesisId: "H_overview_frontend",
+    }),
+  }).catch(() => {});
+  // #endregion
+
   return (
     <section className="rounded-xl bg-white/90 p-2.5 shadow-sm ring-1 ring-slate-100">
       <h2 className="mb-1.5 text-[11px] font-semibold text-slate-800">
