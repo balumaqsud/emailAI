@@ -47,19 +47,42 @@ function summaryLine(
 
   switch (type) {
     case "invoice": {
-      const vendor = safeStr(extractedData, "vendorName");
-      const total = safeNum(extractedData, "totalAmount");
-      const due = safeStr(extractedData, "dueDate");
+      const invoice = extractedData.invoice as Record<string, unknown> | undefined;
+      const vendor = safeStr(extractedData, "company");
+      const total = invoice ? safeNum(invoice, "amount") : null;
+      const due = invoice ? safeStr(invoice, "due_date") : "";
       const parts = [vendor || "—", total != null ? String(total) : "", due].filter(Boolean);
       return parts.length > 0 ? parts.join(" · ") : "—";
     }
     case "meeting": {
-      const title = safeStr(extractedData, "title");
-      const start = safeStr(extractedData, "startTime");
-      const parts = [title || "—", start].filter(Boolean);
+      const meeting = extractedData.meeting as Record<string, unknown> | undefined;
+      const topic = meeting ? safeStr(meeting, "topic") : "";
+      const start = meeting ? safeStr(meeting, "proposed_time") : "";
+      const parts = [topic || "—", start].filter(Boolean);
       return parts.length > 0 ? parts.join(" · ") : "—";
     }
     case "support": {
+      const intent = safeStr(extractedData, "intent");
+      const ticket = extractedData.ticket as Record<string, unknown> | undefined;
+      const deal = extractedData.deal as Record<string, unknown> | undefined;
+      if (intent === "create_ticket") {
+        const issue = ticket ? safeStr(ticket, "issue") : "";
+        const priority = ticket ? safeStr(ticket, "priority") : "";
+        const urgency = ticket ? safeStr(ticket, "urgency_reason") : "";
+        const parts = [priority || "", issue || "—", urgency].filter(Boolean);
+        return parts.length > 0 ? parts.join(" · ") : "—";
+      }
+      if (intent === "create_deal" || intent === "create_lead") {
+        const product = deal ? safeStr(deal, "product") : "";
+        const usersRequested =
+          deal && typeof (deal.users_requested as unknown) === "number"
+            ? String(deal.users_requested as unknown as number)
+            : "";
+        const task = extractedData.task as Record<string, unknown> | undefined;
+        const action = task ? safeStr(task, "action") : "";
+        const parts = [product || "—", usersRequested, action].filter(Boolean);
+        return parts.length > 0 ? parts.join(" · ") : "—";
+      }
       const ticketId = safeStr(extractedData, "ticketId");
       const priority = safeStr(extractedData, "priority");
       const parts = [ticketId || "—", priority].filter(Boolean);

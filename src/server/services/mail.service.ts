@@ -62,6 +62,19 @@ function normalizeSnippet(bodyText: string): string {
 }
 
 async function analyzeEmail(payload: AnalyzeEmailPayload): Promise<void> {
+  // #region agent log
+  fetch("http://127.0.0.1:7242/ingest/82fb972f-c31b-4021-b252-62d4c5e26664", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      location: "mail.service.ts:analyzeEmail:entry",
+      message: "analyzeEmail started",
+      data: { userId: payload.userId, messageId: payload.messageId },
+      timestamp: Date.now(),
+      hypothesisId: "H1_H5",
+    }),
+  }).catch(() => {});
+  // #endregion
   try {
     const classification = await classifyEmail({
       userId: payload.userId,
@@ -70,6 +83,24 @@ async function analyzeEmail(payload: AnalyzeEmailPayload): Promise<void> {
       from: payload.from,
       bodyText: payload.bodyText,
     });
+
+    // #region agent log
+    fetch("http://127.0.0.1:7242/ingest/82fb972f-c31b-4021-b252-62d4c5e26664", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        location: "mail.service.ts:after classify",
+        message: "classification done",
+        data: {
+          userId: payload.userId,
+          messageId: payload.messageId,
+          type: classification.type,
+        },
+        timestamp: Date.now(),
+        hypothesisId: "H1",
+      }),
+    }).catch(() => {});
+    // #endregion
 
     const extractParams: ExtractEmailParams = {
       userId: payload.userId,
@@ -80,10 +111,80 @@ async function analyzeEmail(payload: AnalyzeEmailPayload): Promise<void> {
       bodyText: payload.bodyText,
     };
 
-    await extractEmail(extractParams);
+    try {
+      await extractEmail(extractParams);
+      // #region agent log
+      fetch(
+        "http://127.0.0.1:7242/ingest/82fb972f-c31b-4021-b252-62d4c5e26664",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            location: "mail.service.ts:after extractEmail",
+            message: "extractEmail succeeded",
+            data: { userId: payload.userId, messageId: payload.messageId },
+            timestamp: Date.now(),
+            hypothesisId: "H2_H3",
+          }),
+        },
+      ).catch(() => {});
+      // #endregion
+    } catch (extractErr) {
+      const msg = extractErr instanceof Error ? extractErr.message : "";
+      // #region agent log
+      fetch(
+        "http://127.0.0.1:7242/ingest/82fb972f-c31b-4021-b252-62d4c5e26664",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            location: "mail.service.ts:extractErr catch",
+            message: "extractEmail threw",
+            data: {
+              userId: payload.userId,
+              messageId: payload.messageId,
+              errorMsg: msg,
+              isNoExtractor: msg.includes("No extractor implemented"),
+            },
+            timestamp: Date.now(),
+            hypothesisId: "H2_H4",
+          }),
+        },
+      ).catch(() => {});
+      // #endregion
+      if (msg.includes("No extractor implemented")) {
+        await extractEmail({
+          ...extractParams,
+          type: "general",
+        });
+      } else {
+        throw extractErr;
+      }
+    }
   } catch (error) {
-    // AI analysis should never break email sending; log and continue.
-    console.error("Error during AI email analysis:", error);
+    // #region agent log
+    fetch("http://127.0.0.1:7242/ingest/82fb972f-c31b-4021-b252-62d4c5e26664", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        location: "mail.service.ts:analyzeEmail outer catch",
+        message: "analyzeEmail failed",
+        data: {
+          userId: payload.userId,
+          messageId: payload.messageId,
+          errorMsg: error instanceof Error ? error.message : String(error),
+        },
+        timestamp: Date.now(),
+        hypothesisId: "H1_H2",
+      }),
+    }).catch(() => {});
+    // #endregion
+    console.error(
+      "[AI] Email analysis failed for userId=%s messageId=%s:",
+      payload.userId,
+      payload.messageId,
+      error instanceof Error ? error.message : error,
+    );
   }
 }
 
@@ -98,6 +199,7 @@ export async function sendMail(params: {
   const senderObjectId = new Types.ObjectId(senderId);
 
   let analysisPayload: AnalyzeEmailPayload | null = null;
+  let recipientAnalysisPayload: AnalyzeEmailPayload | null = null;
 
   const session: ClientSession = await mongoose.startSession();
 
@@ -205,11 +307,18 @@ export async function sendMail(params: {
         conversationId: conversation._id.toHexString(),
       };
 
-      // Prepare AI analysis payload (classification + extraction) using
+      // Prepare AI analysis payloads (classification + extraction) using
       // stable, committed data. This will be executed asynchronously
       // after the transaction completes.
       analysisPayload = {
         userId: senderObjectId.toHexString(),
+        messageId: messageIdHex,
+        subject: validated.subject ?? undefined,
+        from: sender.nickname,
+        bodyText: validated.bodyText,
+      };
+      recipientAnalysisPayload = {
+        userId: recipientId.toHexString(),
         messageId: messageIdHex,
         subject: validated.subject ?? undefined,
         from: sender.nickname,
@@ -226,9 +335,10 @@ export async function sendMail(params: {
     }
 
     if (analysisPayload) {
-      // Fire-and-forget AI analysis. This must not block or affect
-      // the main email sending flow.
       void analyzeEmail(analysisPayload);
+    }
+    if (recipientAnalysisPayload) {
+      void analyzeEmail(recipientAnalysisPayload);
     }
 
     return result;

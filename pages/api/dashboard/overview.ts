@@ -25,10 +25,13 @@ export default async function handler(
   try {
     const auth = requireAuth(req);
     const range = parseRange(req.query.range);
+    const scope = req.query.scope;
+    const inboxOnly = scope === "inbox";
 
     const data = await getDashboardOverview({
       userId: auth.userId,
       range,
+      inboxOnly,
     });
 
     res.status(200).json(data);

@@ -1,6 +1,6 @@
 import { Types } from "mongoose";
 import { dbConnect } from "@/src/server/db";
-import { EmailClassification, EmailExtraction } from "@/src/server/models";
+import { EmailClassification, EmailExtraction, Mailbox } from "@/src/server/models";
 import {
   getDateRange,
   isStuck,
@@ -73,6 +73,8 @@ function safeArrStr(v: unknown): string[] {
 export async function buildDashboardOverview(params: {
   userId: string;
   range: DashboardRangeParam;
+  /** When true (default), only include messages from mailbox folder inbox. */
+  inboxOnly?: boolean;
 }): Promise<DashboardOverviewDTO> {
   await dbConnect();
 
@@ -80,6 +82,7 @@ export async function buildDashboardOverview(params: {
   const { from, to } = getDateRange(params.range);
   const now = new Date();
   const stuckCutoff = new Date(now.getTime() - 5 * 60 * 1000);
+  const inboxOnly = params.inboxOnly !== false;
 
   const zeroDistribution: Record<EmailType, number> = {
     invoice: 0,
@@ -119,19 +122,61 @@ export async function buildDashboardOverview(params: {
     },
   };
 
-  const extractionMatch = {
+  let inboxMessageIds: Types.ObjectId[] | null = null;
+  if (inboxOnly) {
+    const inboxRows = await Mailbox.find({
+      userId: userObjectId,
+      folder: "inbox",
+      createdAt: { $gte: from, $lte: to },
+    })
+      .select("messageId")
+      .lean()
+      .exec();
+    inboxMessageIds = inboxRows.map((r) => r.messageId as Types.ObjectId).filter(Boolean);
+  }
+
+  const extractionMatch: Record<string, unknown> = {
     userId: userObjectId,
     createdAt: { $gte: from, $lte: to },
   };
+  if (inboxMessageIds && inboxMessageIds.length > 0) {
+    extractionMatch.messageId = { $in: inboxMessageIds };
+  } else if (inboxMessageIds && inboxMessageIds.length === 0) {
+    return emptyDTO;
+  }
 
   const extractionDocs = await EmailExtraction.find(extractionMatch)
     .lean()
     .exec();
 
-  const classificationDocs = await EmailClassification.find({
+  // #region agent log
+  fetch("http://127.0.0.1:7242/ingest/82fb972f-c31b-4021-b252-62d4c5e26664", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      location: "dashboard.service.ts:after extraction find",
+      message: "extractionDocs count",
+      data: {
+        userId: params.userId,
+        inboxOnly,
+        extractionCount: extractionDocs.length,
+        extractionMatch: JSON.stringify(Object.keys(extractionMatch)),
+      },
+      timestamp: Date.now(),
+      hypothesisId: "dashboard_query",
+    }),
+  }).catch(() => {});
+  // #endregion
+
+  const classificationMatch: Record<string, unknown> = {
     userId: userObjectId,
     createdAt: { $gte: from, $lte: to },
-  })
+  };
+  if (inboxMessageIds && inboxMessageIds.length > 0) {
+    classificationMatch.messageId = { $in: inboxMessageIds };
+  }
+
+  const classificationDocs = await EmailClassification.find(classificationMatch)
     .lean()
     .exec();
 
@@ -188,13 +233,13 @@ export async function buildDashboardOverview(params: {
         const docType = safeStr(doc.type);
         if (docType === "invoice") {
           invoicesCount++;
-          const paymentStatus = safeStr(data.paymentStatus).toLowerCase();
-          if (paymentStatus === "unpaid") unpaidCount++;
-          totalAmountSum += safeNum(data.totalAmount);
-          const vendor = safeStr(data.vendorName).trim();
+          const invoiceData = (data.invoice || {}) as Record<string, unknown>;
+          totalAmountSum += safeNum(invoiceData.amount);
+          const vendor = safeStr(data.company);
           if (vendor) vendorCounts[vendor] = (vendorCounts[vendor] ?? 0) + 1;
         } else if (docType === "meeting") {
-          const startTime = safeStr(data.startTime);
+          const meetingData = (data.meeting || {}) as Record<string, unknown>;
+          const startTime = safeStr(meetingData.proposed_time);
           if (startTime) {
             const start = new Date(startTime);
             if (!Number.isNaN(start.getTime())) {
@@ -203,10 +248,13 @@ export async function buildDashboardOverview(params: {
             }
           }
         } else if (docType === "support") {
-          const statusVal = safeStr(data.status).toLowerCase();
-          if (statusVal === "open") supportOpen++;
-          const priority = safeStr(data.priority).toLowerCase();
-          if (priority === "urgent" || priority === "high") supportUrgent++;
+          const intent = safeStr(data.intent).toLowerCase();
+          if (intent === "create_ticket") {
+            supportOpen++;
+            const ticket = (data.ticket || {}) as Record<string, unknown>;
+            const priority = safeStr(ticket.priority).toLowerCase();
+            if (priority === "urgent" || priority === "high") supportUrgent++;
+          }
         } else if (docType === "job_application") {
           const stage = safeStr(data.stage).toLowerCase();
           if (stage !== "rejected") jobsActive++;
