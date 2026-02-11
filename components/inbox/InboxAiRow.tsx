@@ -4,6 +4,7 @@ export interface InboxAiRowProps {
   subject: string;
   from: string;
   date: string;
+  messageId?: string;
   classification?: { type: EmailType; confidence: number };
   extraction?: {
     status: "processing" | "done" | "failed";
@@ -14,6 +15,7 @@ export interface InboxAiRowProps {
     extractedData?: Record<string, unknown> | null;
   };
   onClick?: () => void;
+  onShowDetails?: (messageId: string) => void;
   unread?: boolean;
   className?: string;
 }
@@ -108,9 +110,11 @@ export function InboxAiRow({
   subject,
   from,
   date,
+  messageId,
   classification,
   extraction,
   onClick,
+  onShowDetails,
   unread = false,
   className = "",
 }: InboxAiRowProps) {
@@ -178,6 +182,18 @@ export function InboxAiRow({
             >
               {status}
             </span>
+          )}
+          {messageId && (
+            <button
+              type="button"
+              className="ml-auto rounded-full border border-sky-100 bg-sky-50 px-2 py-0.5 text-[9px] font-medium text-sky-700 hover:bg-sky-100"
+              onClick={(e) => {
+                e.stopPropagation();
+                onShowDetails?.(messageId);
+              }}
+            >
+              AI details
+            </button>
           )}
         </div>
         <p className="truncate text-[10px] text-slate-500">{aiLine}</p>

@@ -47,6 +47,39 @@ type ApiGetAnalysisSuccess = {
   } | null;
 };
 
+type ApiGetAiDetailsSuccess = {
+  ok: true;
+  data: {
+    message: {
+      id: string;
+      subject: string | null;
+      senderId: string;
+      createdAt: string;
+    } | null;
+    classification: {
+      type: string;
+      confidence: number;
+      modelName: string;
+      promptVersion: string;
+      createdAt: string;
+      updatedAt: string;
+    } | null;
+    extraction: {
+      status: string;
+      type: string;
+      schemaVersion: string;
+      confidence: number | null;
+      missingFields: string[];
+      warnings: string[];
+      modelName: string;
+      promptVersion: string;
+      createdAt: string;
+      updatedAt: string;
+      extractedData: Record<string, unknown> | null;
+    } | null;
+  };
+};
+
 async function parseJson<T>(res: Response): Promise<T | ApiErrorShape> {
   try {
     return (await res.json()) as T | ApiErrorShape;
@@ -181,4 +214,23 @@ export async function getEmailAnalysis(
     extractedData: okData.data.extractedData,
     confidence: okData.data.confidence,
   };
+}
+
+export type EmailAiDetails = ApiGetAiDetailsSuccess["data"];
+
+export async function getEmailAiDetails(
+  messageId: string,
+  token: string,
+): Promise<EmailAiDetails> {
+  const res = await fetch(`/api/ai/email/details/${messageId}`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    credentials: "include",
+  });
+
+  const data = await parseJson<ApiGetAiDetailsSuccess>(res);
+  const okData = ensureOk<ApiGetAiDetailsSuccess>(res, data);
+  return okData.data;
 }

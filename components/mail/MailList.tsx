@@ -1,9 +1,12 @@
-import type { HTMLAttributes } from "react";
+import { useState, type HTMLAttributes } from "react";
 import { MailListItem } from "./MailListItem";
 import { InboxAiRow } from "@/components/inbox/InboxAiRow";
+import { InboxAiDetailsModal } from "@/components/inbox/InboxAiDetailsModal";
 import type { MailboxItemSummary } from "@/src/lib/mail/types";
 import type { EmailAnalysis } from "@/src/lib/mail/types";
 import type { EmailType } from "@/src/features/dashboard/types";
+import { useAuth } from "@/src/lib/auth/context";
+import { getEmailAiDetails, type EmailAiDetails } from "@/src/lib/mail/api";
 import styles from "@/styles/Mail.module.css";
 
 const VALID_EMAIL_TYPES: EmailType[] = [
@@ -39,6 +42,12 @@ export function MailList({
   className = "",
   ...props
 }: MailListProps) {
+  const { accessToken } = useAuth();
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [detailsLoading, setDetailsLoading] = useState(false);
+  const [detailsError, setDetailsError] = useState<string | null>(null);
+  const [details, setDetails] = useState<EmailAiDetails | null>(null);
+
   if (items.length === 0) {
     return (
       <div className={styles.emptyState}>
@@ -49,12 +58,35 @@ export function MailList({
 
   const useAi = aiMap && Object.keys(aiMap).length > 0;
 
+  async function handleShowDetails(messageId: string): Promise<void> {
+    if (!accessToken) {
+      setDetailsError("You must be logged in to view AI details.");
+      setDetailsOpen(true);
+      return;
+    }
+    setDetailsOpen(true);
+    setDetailsLoading(true);
+    setDetailsError(null);
+    setDetails(null);
+    try {
+      const data = await getEmailAiDetails(messageId, accessToken);
+      setDetails(data);
+    } catch (err) {
+      const msg =
+        err instanceof Error ? err.message : "Failed to load AI details.";
+      setDetailsError(msg);
+    } finally {
+      setDetailsLoading(false);
+    }
+  }
+
   return (
-    <div
-      className={[styles.list, className].filter(Boolean).join(" ")}
-      {...props}
-    >
-      {items.map((item) => {
+    <>
+      <div
+        className={[styles.list, className].filter(Boolean).join(" ")}
+        {...props}
+      >
+        {items.map((item) => {
         const createdAt = new Date(item.message.createdAt);
         const time = timeFormatter.format(createdAt);
         const subject = item.message.subject ?? "(no subject)";
@@ -69,8 +101,10 @@ export function MailList({
               subject={subject}
               from={from}
               date={time}
+              messageId={item.messageId}
               unread={!item.isRead}
               onClick={() => onItemClick?.(item)}
+              onShowDetails={handleShowDetails}
               classification={
                 analysis
                   ? { type, confidence: analysis.confidence }
@@ -109,6 +143,14 @@ export function MailList({
           />
         );
       })}
-    </div>
+      </div>
+      <InboxAiDetailsModal
+        open={detailsOpen}
+        onClose={() => setDetailsOpen(false)}
+        details={details}
+        loading={detailsLoading}
+        error={detailsError}
+      />
+    </>
   );
 }
