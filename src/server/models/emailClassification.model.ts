@@ -12,7 +12,7 @@ export interface IEmailClassification extends Document {
   messageId: Types.ObjectId;
   type: EmailClassificationType;
   confidence: number;
-  model: string;
+  modelName: string;
   promptVersion: string;
   createdAt: Date;
   updatedAt: Date;
@@ -41,7 +41,7 @@ const EmailClassificationSchema = new Schema<IEmailClassification>(
       min: 0,
       max: 1,
     },
-    model: {
+    modelName: {
       type: String,
       required: true,
       trim: true,

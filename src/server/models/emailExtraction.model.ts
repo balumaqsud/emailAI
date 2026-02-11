@@ -22,7 +22,7 @@ export interface IEmailExtraction extends Document {
   confidence?: number;
   missingFields: string[];
   warnings: string[];
-  model: string;
+  modelName: string;
   promptVersion: string;
   createdAt: Date;
   updatedAt: Date;
@@ -72,7 +72,7 @@ const EmailExtractionSchema = new Schema<IEmailExtraction>(
       type: [String],
       default: [],
     },
-    model: {
+    modelName: {
       type: String,
       required: true,
       trim: true,

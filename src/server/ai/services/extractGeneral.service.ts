@@ -112,11 +112,12 @@ export async function extractGeneral(
   const choice = response.choices[0];
   const content = choice.message?.content;
 
+  type ContentPart = { text?: string };
   const text =
     typeof content === "string"
       ? content
       : Array.isArray(content)
-        ? content
+        ? (content as ContentPart[])
             .map((part) => part?.text ?? "")
             .join(" ")
             .trim()

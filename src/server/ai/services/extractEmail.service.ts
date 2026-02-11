@@ -82,7 +82,7 @@ export async function extractEmail(
         confidence,
         missingFields,
         warnings,
-        model: model || process.env.OPENAI_MODEL || "gpt-4.1-mini",
+        modelName: model || process.env.OPENAI_MODEL || "gpt-4.1-mini",
         promptVersion: promptVersion || "general_v1",
       },
     },

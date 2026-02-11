@@ -124,7 +124,7 @@ export async function classifyEmail(
       $set: {
         type: result.type as EmailClassificationType,
         confidence: result.confidence,
-        model: getModelName(),
+        modelName: getModelName(),
         promptVersion,
       },
     },
