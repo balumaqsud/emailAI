@@ -27,13 +27,8 @@
 .primaryColumn {
   display: flex;
   min-width: 0;
-  flex: 1.7;
+  flex: 1;
   flex-direction: column;
   gap: 0.5rem;
-}
-
-.secondaryColumn {
-  width: 18rem;
-  flex-shrink: 0;
 }
 

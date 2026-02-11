@@ -98,9 +98,7 @@ export default function InboxThreadPage() {
               ← Back
             </Button>
             <span className="text-[11px] text-slate-500">
-              {message
-                ? (message.subject ?? "(no subject)")
-                : messageId ?? ""}
+              {message ? message.subject ?? "(no subject)" : messageId ?? ""}
             </span>
           </div>
         </div>

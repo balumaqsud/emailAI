@@ -137,8 +137,6 @@ export async function registerUser(
       sub: publicUser.id,
       nickname: publicUser.nickname,
       type: "access",
-      iat: undefined,
-      exp: undefined,
     },
     refreshExpiresAt: refresh.expiresAt,
   };

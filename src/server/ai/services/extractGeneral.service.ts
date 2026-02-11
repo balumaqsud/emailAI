@@ -45,9 +45,9 @@ function buildPrompt(input: ExtractGeneralInput): string {
     "Return STRICT JSON only, matching exactly this TypeScript type (no extra keys):",
     "",
     "type GeneralExtraction = {",
-    '  summary?: string;        // short human-readable summary of the email',
-    '  keyEntities?: string[];  // important names, companies, or systems mentioned',
-    '  dates?: string[];        // plain-text dates mentioned (as seen in the email)',
+    "  summary?: string;        // short human-readable summary of the email",
+    "  keyEntities?: string[];  // important names, companies, or systems mentioned",
+    "  dates?: string[];        // plain-text dates mentioned (as seen in the email)",
     "};",
     "",
     "Rules:",
@@ -116,7 +116,10 @@ export async function extractGeneral(
     typeof content === "string"
       ? content
       : Array.isArray(content)
-        ? content.map((part) => part?.text ?? "").join(" ").trim()
+        ? content
+            .map((part) => part?.text ?? "")
+            .join(" ")
+            .trim()
         : "";
 
   let parsed: unknown;
@@ -148,4 +151,3 @@ export async function extractGeneral(
     schemaVersion: GENERAL_SCHEMA_VERSION,
   };
 }
-

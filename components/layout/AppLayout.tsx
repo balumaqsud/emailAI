@@ -2,7 +2,6 @@ import type { ReactNode } from "react";
 import { Sidebar } from "../navigation/Sidebar";
 import { PageContainer } from "./PageContainer";
 import { Topbar } from "../header/Topbar";
-import { InsightsPanel } from "../dashboard/InsightsPanel";
 import styles from "@/styles/AppLayout.module.css";
 import type { MailFolder } from "@/src/lib/mail/types";
 
@@ -29,9 +28,6 @@ export function AppLayout({
           <Topbar onLogout={onLogout} onCompose={onCompose} />
           <div className={styles.mainInner}>
             <section className={styles.primaryColumn}>{children}</section>
-            <aside className={`${styles.secondaryColumn} hidden md:block`}>
-              <InsightsPanel />
-            </aside>
           </div>
         </main>
       </PageContainer>

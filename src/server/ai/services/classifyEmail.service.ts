@@ -16,7 +16,7 @@ import {
 
 const ClassificationResultSchema = z
   .object({
-    type: z.enum(CLASSIFICATION_TYPES),
+    type: z.enum(CLASSIFICATION_TYPES as [string, ...string[]]),
     confidence: z.number().min(0).max(1),
   })
   .strict();
@@ -64,7 +64,7 @@ async function callOpenAIForClassification(
     typeof content === "string"
       ? content
       : Array.isArray(content)
-        ? content.map((part) => part?.text ?? "").join(" ").trim()
+        ? (content as Array<{ text?: string }>).map((part) => part?.text ?? "").join(" ").trim()
         : "";
 
   let parsed: unknown;
