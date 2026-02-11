@@ -21,6 +21,8 @@ export default function InboxThreadPage() {
 
   useEffect(() => {
     if (!messageId || !accessToken) return;
+    const mid = messageId;
+    const token = accessToken;
 
     let cancelled = false;
 
@@ -28,12 +30,12 @@ export default function InboxThreadPage() {
       setLoading(true);
       setError(null);
       try {
-        const data = await getMessage(messageId, accessToken);
+        const data = await getMessage(mid, token);
         if (!cancelled) {
           setMessage(data);
         }
         // Fire-and-forget read tracking; do not fail the view if this errors
-        void markRead(messageId, true, accessToken).catch(() => {
+        void markRead(mid, true, token).catch(() => {
           // no-op
         });
       } catch (err) {
