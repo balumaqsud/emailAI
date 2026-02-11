@@ -126,10 +126,15 @@ export function InboxAiRow({
       ? Math.round(classification.confidence * 100)
       : null;
   const status = extraction?.status ?? null;
-  const aiLine =
+  const MAX_AI_PREVIEW_LENGTH = 150;
+  const rawAiLine =
     extraction?.extractedData != null && extraction?.type
       ? summaryLine(extraction.type, extraction.extractedData)
       : "—";
+  const aiLine =
+    rawAiLine !== "—" && rawAiLine.length > MAX_AI_PREVIEW_LENGTH
+      ? `${rawAiLine.slice(0, MAX_AI_PREVIEW_LENGTH).trimEnd()}…`
+      : rawAiLine;
 
   return (
     <article

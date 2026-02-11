@@ -43,7 +43,7 @@ export function MailListItem({
   ...props
 }: MailListItemProps) {
   const MAX_SUBJECT_LENGTH = 80;
-  const MAX_PREVIEW_LENGTH = 100;
+  const MAX_PREVIEW_LENGTH = 150;
 
   const displaySubject =
     subject.length > MAX_SUBJECT_LENGTH
@@ -54,6 +54,24 @@ export function MailListItem({
     preview.length > MAX_PREVIEW_LENGTH
       ? `${preview.slice(0, MAX_PREVIEW_LENGTH).trimEnd()}…`
       : preview;
+
+  // #region agent log
+  fetch("http://127.0.0.1:7242/ingest/82fb972f-c31b-4021-b252-62d4c5e26664", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      location: "components/mail/MailListItem.tsx:55",
+      message: "MailListItem preview length",
+      data: {
+        previewLength: preview.length,
+        displayPreviewLength: displayPreview.length,
+      },
+      timestamp: Date.now(),
+      runId: "pre-fix",
+      hypothesisId: "H1",
+    }),
+  }).catch(() => {});
+  // #endregion
 
   const { accessToken } = useAuth();
   const [expanded, setExpanded] = useState(false);
