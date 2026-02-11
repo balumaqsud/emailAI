@@ -15,7 +15,6 @@ import { useDashboardOverview } from "@/src/features/dashboard/useDashboardOverv
 import { AiPipelineCard } from "@/components/dashboard/AiPipelineCard";
 import { TypeDistributionChart } from "@/components/dashboard/TypeDistributionChart";
 import { IdentifiedHighlights } from "@/components/dashboard/IdentifiedHighlights";
-import { NeedsReviewTable } from "@/components/dashboard/NeedsReviewTable";
 import styles from "@/styles/Mail.module.css";
 
 export default function DashboardPage() {
@@ -139,10 +138,6 @@ export default function DashboardPage() {
     void router.push(`/inbox/${item.messageId}`);
   };
 
-  const handleNeedsReviewMessageClick = (messageId: string) => {
-    void router.push(`/inbox/${messageId}`);
-  };
-
   return (
     <RequireAuth>
       <AppLayout
@@ -151,15 +146,15 @@ export default function DashboardPage() {
         currentFolder={folder}
         onSelectFolder={handleSelectFolder}
       >
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-medium text-slate-600">Range:</span>
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-1.5">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[11px] font-medium text-slate-600">Range:</span>
             {(["24h", "7d", "30d"] as const).map((r) => (
               <button
                 key={r}
                 type="button"
                 onClick={() => setRange(r)}
-                className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
+                className={`rounded-md px-2.5 py-1 text-[11px] font-medium ${
                   range === r
                     ? "bg-sky-500 text-white"
                     : "bg-slate-100 text-slate-600 hover:bg-slate-200"
@@ -178,30 +173,21 @@ export default function DashboardPage() {
         )}
 
         {overviewLoading && !overview && (
-          <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mb-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {[1, 2, 3].map((i) => (
               <div
                 key={i}
-                className="h-32 animate-pulse rounded-2xl bg-slate-100"
+                className="h-20 animate-pulse rounded-xl bg-slate-100"
               />
             ))}
           </div>
         )}
 
         {overview && !overviewLoading && (
-          <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mb-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             <AiPipelineCard pipeline={overview.pipeline} />
             <TypeDistributionChart distribution={overview.distribution} />
             <IdentifiedHighlights highlights={overview.highlights} />
-          </div>
-        )}
-
-        {overview && !overviewLoading && (
-          <div className="mb-4">
-            <NeedsReviewTable
-              items={overview.needsReview}
-              onMessageClick={handleNeedsReviewMessageClick}
-            />
           </div>
         )}
 

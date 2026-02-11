@@ -30,22 +30,22 @@ export function TypeDistributionChart({
   const max = Math.max(...entries.map(([, n]) => n), 1);
 
   return (
-    <section className="rounded-2xl bg-white/90 p-4 shadow-sm ring-1 ring-slate-100">
-      <h2 className="mb-3 text-sm font-semibold text-slate-800">
+    <section className="rounded-xl bg-white/90 p-2.5 shadow-sm ring-1 ring-slate-100">
+      <h2 className="mb-1.5 text-[11px] font-semibold text-slate-800">
         Type distribution
       </h2>
       {entries.length === 0 ? (
-        <p className="text-xs text-slate-500">No data in range.</p>
+        <p className="text-[11px] text-slate-500">No data in range.</p>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-1">
           {entries.map(([type, count], i) => (
-            <div key={type} className="flex items-center gap-2">
-              <span className="w-24 shrink-0 text-[11px] text-slate-600">
+            <div key={type} className="flex items-center gap-1.5">
+              <span className="w-20 shrink-0 text-[10px] text-slate-600">
                 {TYPE_LABELS[type]}
               </span>
               <div className="min-w-0 flex-1">
                 <div
-                  className={`h-6 rounded ${COLORS[i % COLORS.length]}`}
+                  className={`h-4 rounded ${COLORS[i % COLORS.length]}`}
                   style={{
                     width: `${(count / max) * 100}%`,
                     minWidth: count > 0 ? "4px" : "0",
@@ -55,7 +55,7 @@ export function TypeDistributionChart({
                   }%)`}
                 />
               </div>
-              <span className="w-8 text-right text-[11px] font-medium text-slate-700">
+              <span className="w-6 text-right text-[10px] font-medium text-slate-700">
                 {count}
               </span>
             </div>

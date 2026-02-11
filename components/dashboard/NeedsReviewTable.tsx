@@ -19,30 +19,30 @@ export function NeedsReviewTable({
 }: NeedsReviewTableProps) {
   if (items.length === 0) {
     return (
-      <section className="rounded-2xl bg-white/90 p-4 shadow-sm ring-1 ring-slate-100">
-        <h2 className="mb-3 text-sm font-semibold text-slate-800">
+      <section className="rounded-xl bg-white/90 p-2.5 shadow-sm ring-1 ring-slate-100">
+        <h2 className="mb-1.5 text-[11px] font-semibold text-slate-800">
           Needs review
         </h2>
-        <p className="text-xs text-slate-500">No items need review.</p>
+        <p className="text-[11px] text-slate-500">No items need review.</p>
       </section>
     );
   }
 
   return (
-    <section className="rounded-2xl bg-white/90 p-4 shadow-sm ring-1 ring-slate-100">
-      <h2 className="mb-3 text-sm font-semibold text-slate-800">
+    <section className="rounded-xl bg-white/90 p-2.5 shadow-sm ring-1 ring-slate-100">
+      <h2 className="mb-1.5 text-[11px] font-semibold text-slate-800">
         Needs review
       </h2>
       <div className="overflow-x-auto">
-        <table className="w-full text-[11px]">
+        <table className="w-full text-[10px]">
           <thead>
             <tr className="border-b border-slate-200 text-left text-slate-500">
-              <th className="pb-2 pr-2 font-medium">Message</th>
-              <th className="pb-2 pr-2 font-medium">Type</th>
-              <th className="pb-2 pr-2 font-medium">Status</th>
-              <th className="pb-2 pr-2 font-medium">Conf.</th>
-              <th className="pb-2 pr-2 font-medium">Issues</th>
-              <th className="pb-2 font-medium">Updated</th>
+              <th className="pb-1 pr-1.5 font-medium">Message</th>
+              <th className="pb-1 pr-1.5 font-medium">Type</th>
+              <th className="pb-1 pr-1.5 font-medium">Status</th>
+              <th className="pb-1 pr-1.5 font-medium">Conf.</th>
+              <th className="pb-1 pr-1.5 font-medium">Issues</th>
+              <th className="pb-1 font-medium">Updated</th>
             </tr>
           </thead>
           <tbody>
@@ -51,7 +51,7 @@ export function NeedsReviewTable({
                 key={row.messageId}
                 className="border-b border-slate-100 hover:bg-slate-50/80"
               >
-                <td className="py-1.5 pr-2">
+                <td className="py-1 pr-1.5">
                   <button
                     type="button"
                     onClick={() => onMessageClick?.(row.messageId)}
@@ -60,12 +60,12 @@ export function NeedsReviewTable({
                     {row.messageId}
                   </button>
                 </td>
-                <td className="py-1.5 pr-2 text-slate-700">
+                <td className="py-1 pr-1.5 text-slate-700">
                   {TYPE_LABELS[row.type] ?? row.type}
                 </td>
-                <td className="py-1.5 pr-2">
+                <td className="py-1 pr-1.5">
                   <span
-                    className={`inline-block rounded-full px-2 py-0.5 text-[10px] ${
+                    className={`inline-block rounded-full px-1.5 py-0.5 text-[9px] ${
                       row.status === "failed"
                         ? "bg-rose-100 text-rose-700"
                         : row.status === "processing"
@@ -76,12 +76,12 @@ export function NeedsReviewTable({
                     {row.status}
                   </span>
                 </td>
-                <td className="py-1.5 pr-2 text-slate-600">
+                <td className="py-1 pr-1.5 text-slate-600">
                   {row.confidence != null
                     ? `${Math.round(row.confidence * 100)}%`
                     : "—"}
                 </td>
-                <td className="max-w-[100px] py-1.5 pr-2 text-slate-500">
+                <td className="max-w-[100px] py-1 pr-1.5 text-slate-500">
                   {row.missingFields.length > 0 && (
                     <span title={row.missingFields.join(", ")}>
                       Missing: {row.missingFields.length}
@@ -96,7 +96,7 @@ export function NeedsReviewTable({
                     row.warnings.length === 0 &&
                     "—"}
                 </td>
-                <td className="whitespace-nowrap py-1.5 text-[10px] text-slate-500">
+                <td className="whitespace-nowrap py-1 text-[9px] text-slate-500">
                   {row.updatedAt
                     ? new Date(row.updatedAt).toLocaleDateString(undefined, {
                         month: "short",
