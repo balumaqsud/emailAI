@@ -7,6 +7,7 @@ import { ScheduleMeetingModal } from "@/components/meetings/ScheduleMeetingModal
 import { MeetingsTable } from "@/components/meetings/MeetingsTable";
 import { useMeetings } from "@/src/features/meetings/useMeetings";
 import { scheduleMeeting } from "@/src/features/meetings/meetingsClient";
+import type { MailFolder } from "@/src/lib/mail/types";
 
 export default function MeetingsPage() {
   const router = useRouter();
@@ -23,6 +24,13 @@ export default function MeetingsPage() {
 
   const handleCompose = () => {
     void router.push("/app/compose");
+  };
+
+  const handleSelectFolder = (folder: MailFolder) => {
+    void router.push({
+      pathname: "/dashboard",
+      query: folder === "inbox" ? {} : { folder },
+    });
   };
 
   const handleSchedule = async (payload: {
@@ -55,7 +63,11 @@ export default function MeetingsPage() {
 
   return (
     <RequireAuth>
-      <AppLayout onLogout={handleLogout} onCompose={handleCompose}>
+      <AppLayout
+        onLogout={handleLogout}
+        onCompose={handleCompose}
+        onSelectFolder={handleSelectFolder}
+      >
         <div className="flex flex-col gap-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h1 className="text-xl font-semibold text-slate-800">Meetings</h1>

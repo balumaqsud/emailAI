@@ -11,6 +11,7 @@ import { MeetingSummaryCard } from "@/components/meetings/MeetingSummaryCard";
 import { useMeetingDetail } from "@/src/features/meetings/useMeetingDetail";
 import { useTranscriptFeed } from "@/src/features/meetings/useTranscriptFeed";
 import { finalizeMeeting } from "@/src/features/meetings/meetingsClient";
+import type { MailFolder } from "@/src/lib/mail/types";
 
 const timeFormatter = new Intl.DateTimeFormat(undefined, {
   dateStyle: "full",
@@ -54,6 +55,13 @@ export default function MeetingDetailPage() {
     void router.push("/app/compose");
   };
 
+  const handleSelectFolder = (folder: MailFolder) => {
+    void router.push({
+      pathname: "/dashboard",
+      query: folder === "inbox" ? {} : { folder },
+    });
+  };
+
   const handleFinalize = async () => {
     if (!accessToken || !id) return;
     setFinalizing(true);
@@ -75,7 +83,11 @@ export default function MeetingDetailPage() {
   if (!id) {
     return (
       <RequireAuth>
-        <AppLayout onLogout={handleLogout} onCompose={handleCompose}>
+        <AppLayout
+          onLogout={handleLogout}
+          onCompose={handleCompose}
+          onSelectFolder={handleSelectFolder}
+        >
           <div className="p-4 text-sm text-slate-600">Meeting not found.</div>
         </AppLayout>
       </RequireAuth>
@@ -85,7 +97,11 @@ export default function MeetingDetailPage() {
   if (isLoading && !meeting) {
     return (
       <RequireAuth>
-        <AppLayout onLogout={handleLogout} onCompose={handleCompose}>
+        <AppLayout
+          onLogout={handleLogout}
+          onCompose={handleCompose}
+          onSelectFolder={handleSelectFolder}
+        >
           <div className="flex items-center justify-center py-16">
             <div className="h-8 w-8 animate-spin rounded-full border-2 border-sky-500 border-t-transparent" />
           </div>
@@ -97,7 +113,11 @@ export default function MeetingDetailPage() {
   if (error || !meeting) {
     return (
       <RequireAuth>
-        <AppLayout onLogout={handleLogout} onCompose={handleCompose}>
+        <AppLayout
+          onLogout={handleLogout}
+          onCompose={handleCompose}
+          onSelectFolder={handleSelectFolder}
+        >
           <div className="p-4">
             <p className="text-sm text-red-600">
               {error?.message ?? "Meeting not found."}
@@ -115,7 +135,11 @@ export default function MeetingDetailPage() {
 
   return (
     <RequireAuth>
-      <AppLayout onLogout={handleLogout} onCompose={handleCompose}>
+      <AppLayout
+        onLogout={handleLogout}
+        onCompose={handleCompose}
+        onSelectFolder={handleSelectFolder}
+      >
         <div className="flex flex-col gap-4">
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div>

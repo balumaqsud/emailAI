@@ -20,8 +20,8 @@ export function Sidebar({
   const isDashboard = router.pathname === "/dashboard";
   const isMeetings =
     router.pathname === "/meetings" || router.pathname.startsWith("/meetings/");
-  const isInbox = currentFolder === "inbox";
-  const isSent = currentFolder === "sent";
+  const isInbox = !isMeetings && currentFolder === "inbox";
+  const isSent = !isMeetings && currentFolder === "sent";
 
   return (
     <aside className="flex w-60 flex-col gap-4 rounded-3xl bg-slate-50/80 text-slate-800 px-3 py-4 text-xs ring-1 ring-slate-100">

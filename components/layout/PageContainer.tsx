@@ -7,7 +7,7 @@ export function PageContainer({
   return (
     <div
       className={[
-        "mx-auto flex h-screen max-h-[900px] max-w-6xl rounded-[32px] bg-slate-50/60 p-3",
+        "flex flex-1 min-h-0 w-full rounded-[32px] bg-slate-50/60 p-3",
         "shadow-[0_22px_60px_rgba(15,23,42,0.18)] ring-1 ring-slate-100",
         className,
       ]
