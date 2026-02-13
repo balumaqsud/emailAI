@@ -31,7 +31,9 @@ export function Sidebar({
             S
           </div>
           <div className="leading-tight">
-            <p className="text-[13px] font-semibold text-slate-900">SignMail</p>
+            <p className="text-[13px] font-semibold text-slate-900">
+              Promtlab AI
+            </p>
             <p className="text-[11px] text-slate-400">AI Email workspace</p>
           </div>
         </Link>
