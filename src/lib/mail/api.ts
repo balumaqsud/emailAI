@@ -228,9 +228,7 @@ export async function getEmailAiDetails(
       Authorization: `Bearer ${token}`,
     },
     credentials: "include",
-  });
-
-  const data = await parseJson<ApiGetAiDetailsSuccess>(res);
+  });  const data = await parseJson<ApiGetAiDetailsSuccess>(res);
   const okData = ensureOk<ApiGetAiDetailsSuccess>(res, data);
   return okData.data;
 }

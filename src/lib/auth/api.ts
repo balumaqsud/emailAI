@@ -85,6 +85,16 @@ export async function login(
   };
 }
 
+export async function getGoogleAuthUrl(): Promise<string> {
+  const res = await fetch("/api/auth/google/url", {
+    method: "GET",
+    credentials: "include",
+  });
+
+  const data = await handleJsonResponse<{ url: string }>(res);
+  return data.url;
+}
+
 export async function me(token: string): Promise<AuthUser> {
   const res = await fetch("/api/auth/me", {
     method: "GET",
@@ -117,5 +127,55 @@ export async function me(token: string): Promise<AuthUser> {
   }
 
   return data.user;
+}
+
+export async function getGmailConnectUrl(
+  token: string,
+): Promise<string> {
+  const res = await fetch("/api/auth/gmail/url", {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    credentials: "include",
+  });
+
+  const data = await handleJsonResponse<{ url: string }>(res);
+  return data.url;
+}
+
+export async function getGoogleCalendarConnectUrl(token: string): Promise<string> {
+  const res = await fetch("/api/auth/google/calendar/url", {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    credentials: "include",
+  });
+
+  const data = await handleJsonResponse<{ url: string }>(res);
+  return data.url;
+}
+
+export async function syncGmail(
+  token: string,
+): Promise<{ importedCount: number; updatedCount: number }> {
+  const res = await fetch("/api/gmail/sync", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    credentials: "include",
+  });
+
+  const data = await handleJsonResponse<{
+    importedCount: number;
+    updatedCount: number;
+  }>(res);
+
+  return {
+    importedCount: data.importedCount,
+    updatedCount: data.updatedCount,
+  };
 }
 

@@ -18,6 +18,8 @@ export function Sidebar({
 }: SidebarProps) {
   const router = useRouter();
   const isDashboard = router.pathname === "/dashboard";
+  const isMeetings =
+    router.pathname === "/meetings" || router.pathname.startsWith("/meetings/");
   const isInbox = currentFolder === "inbox";
   const isSent = currentFolder === "sent";
 
@@ -56,6 +58,9 @@ export function Sidebar({
         >
           <SidebarItem label="Sent" active={isSent} />
         </button>
+        <Link href="/meetings">
+          <SidebarItem label="Meetings" active={isMeetings} />
+        </Link>
       </SidebarSection>
 
       {children}

@@ -73,6 +73,35 @@
   transition: background-color 0.15s ease, box-shadow 0.15s ease;
 }
 
+.buttonSecondary {
+  margin-top: 0.25rem;
+  border-radius: 0.5rem;
+  border: 1px solid #d1d5db;
+  padding: 0.7rem 0.75rem;
+  font-size: 0.95rem;
+  font-weight: 500;
+  background: #ffffff;
+  color: #374151;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: background-color 0.15s ease, box-shadow 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.buttonSecondary:disabled {
+  opacity: 0.7;
+  cursor: default;
+}
+
+.buttonSecondary:not(:disabled):hover {
+  background: #f3f4f6;
+  border-color: #9ca3af;
+  box-shadow: 0 4px 10px rgba(148, 163, 184, 0.4);
+}
+
 .button:disabled {
   background: #93c5fd;
   cursor: default;

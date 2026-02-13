@@ -5,9 +5,21 @@ export type UserStatus = "active" | "blocked";
 export interface IUser extends Document {
   nickname: string;
   email?: string;
-  passwordHash: string;
+  passwordHash?: string;
   status: UserStatus;
   lastLoginAt?: Date;
+  provider?: string;
+  providerId?: string;
+  name?: string;
+  pictureUrl?: string;
+  gmailEmail?: string;
+  gmailAccessToken?: string;
+  gmailRefreshToken?: string;
+  gmailTokenExpiresAt?: Date;
+  gmailHistoryId?: string;
+  googleAccessToken?: string;
+  googleRefreshToken?: string;
+  googleTokenExpiresAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -31,7 +43,7 @@ const UserSchema = new Schema<IUser>(
     },
     passwordHash: {
       type: String,
-      required: true,
+      required: false,
     },
     status: {
       type: String,
@@ -40,6 +52,59 @@ const UserSchema = new Schema<IUser>(
       required: true,
     },
     lastLoginAt: {
+      type: Date,
+      required: false,
+    },
+    provider: {
+      type: String,
+      required: false,
+      index: true,
+    },
+    providerId: {
+      type: String,
+      required: false,
+      index: true,
+    },
+    name: {
+      type: String,
+      required: false,
+      trim: true,
+    },
+    pictureUrl: {
+      type: String,
+      required: false,
+    },
+    gmailEmail: {
+      type: String,
+      required: false,
+      lowercase: true,
+      trim: true,
+    },
+    gmailAccessToken: {
+      type: String,
+      required: false,
+    },
+    gmailRefreshToken: {
+      type: String,
+      required: false,
+    },
+    gmailTokenExpiresAt: {
+      type: Date,
+      required: false,
+    },
+    gmailHistoryId: {
+      type: String,
+      required: false,
+    },
+    googleAccessToken: {
+      type: String,
+      required: false,
+    },
+    googleRefreshToken: {
+      type: String,
+      required: false,
+    },
+    googleTokenExpiresAt: {
       type: Date,
       required: false,
     },

@@ -5,6 +5,7 @@ import { useAuth } from "@/src/lib/auth/context";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { MailList } from "@/components/mail/MailList";
 import { listMailbox, markRead, getEmailAnalysis } from "@/src/lib/mail/api";
+import { getGmailConnectUrl, syncGmail } from "@/src/lib/auth/api";
 import type {
   MailboxItemSummary,
   MailFolder,
@@ -26,6 +27,8 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [aiMap, setAiMap] = useState<Record<string, EmailAnalysis>>({});
+  const [syncingGmail, setSyncingGmail] = useState(false);
+  const [gmailError, setGmailError] = useState<string | null>(null);
 
   const {
     data: overview,
@@ -112,6 +115,36 @@ export default function DashboardPage() {
     void router.push("/app/compose");
   };
 
+  const handleConnectGmail = async () => {
+    if (!accessToken) return;
+    setGmailError(null);
+    try {
+      const url = await getGmailConnectUrl(accessToken);
+      window.location.href = url;
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Failed to start Gmail connect.";
+      setGmailError(message);
+    }
+  };
+
+  const handleSyncGmail = async () => {
+    if (!accessToken) return;
+    setGmailError(null);
+    setSyncingGmail(true);
+    try {
+      await syncGmail(accessToken);
+      // Reload inbox after sync
+      void router.replace(router.asPath);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Failed to sync Gmail.";
+      setGmailError(message);
+    } finally {
+      setSyncingGmail(false);
+    }
+  };
+
   const handleSelectFolder = (nextFolder: MailFolder) => {
     void router.push(
       {
@@ -190,6 +223,35 @@ export default function DashboardPage() {
             <IdentifiedHighlights highlights={overview.highlights} />
           </div>
         )}
+
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-white/80 px-3 py-2 text-xs shadow-sm ring-1 ring-slate-100">
+          <div className="flex flex-col gap-1 text-[11px] text-slate-600">
+            <span className="font-medium text-slate-700">Email sources</span>
+            <span className="text-slate-500">
+              Connect your Gmail inbox and sync recent messages into this app.
+            </span>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={handleConnectGmail}
+              className="rounded-md bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-700 hover:bg-slate-200"
+              disabled={!accessToken}
+            >
+              Connect Gmail
+            </button>
+            <button
+              type="button"
+              onClick={handleSyncGmail}
+              className="rounded-md bg-sky-500 px-2.5 py-1 text-[11px] font-medium text-white hover:bg-sky-600 disabled:bg-sky-300"
+              disabled={!accessToken || syncingGmail}
+            >
+              {syncingGmail ? "Syncing…" : "Sync now"}
+            </button>
+          </div>
+        </div>
+
+        {gmailError && <div className={styles.error}>{gmailError}</div>}
 
         <div className="flex items-center justify-between gap-2 rounded-2xl bg-white/80 px-3 py-2 text-xs shadow-sm ring-1 ring-slate-100">
           <div className="flex items-center gap-2 text-[11px] text-slate-500">

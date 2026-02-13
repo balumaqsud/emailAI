@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { EmailAiDetails } from "@/src/lib/mail/api";
 
 export interface InboxAiDetailsModalProps {
@@ -7,6 +7,11 @@ export interface InboxAiDetailsModalProps {
   details: EmailAiDetails | null;
   loading?: boolean;
   error?: string | null;
+}
+
+interface DetailRow {
+  label: string;
+  value: string;
 }
 
 function safeStr(
@@ -28,23 +33,73 @@ function safeNum(
   return null;
 }
 
-function renderExtractionDetails(
-  extraction: NonNullable<EmailAiDetails["extraction"]>,
-) {
-  const data = extraction.extractedData as
-    | Record<string, unknown>
-    | null
-    | undefined;
+function DetailsTable({ rows }: { rows: DetailRow[] }) {
+  const visibleRows = rows.filter((row) => row.value.trim().length > 0);
 
-  if (!data || typeof data !== "object") {
+  if (visibleRows.length === 0) {
     return (
-      <p className="text-slate-500">
+      <p className="text-[11px] text-slate-500">
         No structured details are available for this email yet.
       </p>
     );
   }
 
+  return (
+    <div className="overflow-x-auto rounded-lg border border-slate-200">
+      <table className="min-w-full border-collapse text-[11px]">
+        <thead>
+          <tr className="bg-slate-50 text-left text-slate-500">
+            <th className="px-3 py-1.5 font-medium">Field</th>
+            <th className="px-3 py-1.5 font-medium">Value</th>
+          </tr>
+        </thead>
+        <tbody>
+          {visibleRows.map((row) => (
+            <tr
+              key={row.label}
+              className="border-t border-slate-200 odd:bg-white even:bg-slate-50/40"
+            >
+              <td className="whitespace-nowrap px-3 py-1.5 text-slate-600">
+                {row.label}
+              </td>
+              <td className="px-3 py-1.5 text-slate-800">{row.value}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function buildExtractionRows(
+  extraction: NonNullable<EmailAiDetails["extraction"]>,
+): DetailRow[] {
+  const data = extraction.extractedData as
+    | Record<string, unknown>
+    | null
+    | undefined;
+
   const type = extraction.type;
+
+  if (!data || typeof data !== "object") {
+    return [
+      {
+        label: "Status",
+        value: extraction.status,
+      },
+      {
+        label: "Type",
+        value: type,
+      },
+      {
+        label: "Confidence",
+        value:
+          extraction.confidence != null
+            ? `${Math.round(extraction.confidence * 100)}%`
+            : "",
+      },
+    ];
+  }
 
   if (type === "invoice") {
     const intent = safeStr(data, "intent");
@@ -55,43 +110,29 @@ function renderExtractionDetails(
     const currency = invoice ? safeStr(invoice, "currency") : "";
     const dueDate = invoice ? safeStr(invoice, "due_date") : "";
 
-    return (
-      <dl className="mt-1 space-y-0.5 text-[11px] text-slate-700">
-        {intent && (
-          <div>
-            <dt className="inline text-slate-500">Intent: </dt>
-            <dd className="inline font-medium">{intent}</dd>
-          </div>
-        )}
-        {company && (
-          <div>
-            <dt className="inline text-slate-500">Company: </dt>
-            <dd className="inline font-medium">{company}</dd>
-          </div>
-        )}
-        {invoiceNumber && (
-          <div>
-            <dt className="inline text-slate-500">Invoice #: </dt>
-            <dd className="inline font-medium">{invoiceNumber}</dd>
-          </div>
-        )}
-        {(amount != null || currency) && (
-          <div>
-            <dt className="inline text-slate-500">Amount: </dt>
-            <dd className="inline font-medium">
-              {amount != null ? amount : "—"}
-              {currency ? ` ${currency}` : ""}
-            </dd>
-          </div>
-        )}
-        {dueDate && (
-          <div>
-            <dt className="inline text-slate-500">Due date: </dt>
-            <dd className="inline font-medium">{dueDate}</dd>
-          </div>
-        )}
-      </dl>
-    );
+    return [
+      { label: "Status", value: extraction.status },
+      {
+        label: "Confidence",
+        value:
+          extraction.confidence != null
+            ? `${Math.round(extraction.confidence * 100)}%`
+            : "",
+      },
+      { label: "Intent", value: intent },
+      { label: "Company", value: company },
+      { label: "Invoice #", value: invoiceNumber },
+      {
+        label: "Amount",
+        value:
+          amount != null || currency
+            ? `${amount != null ? amount : "—"}${
+                currency ? ` ${currency}` : ""
+              }`
+            : "",
+      },
+      { label: "Due date", value: dueDate },
+    ];
   }
 
   if (type === "meeting") {
@@ -103,40 +144,21 @@ function renderExtractionDetails(
     const time = meeting ? safeStr(meeting, "proposed_time") : "";
     const location = meeting ? safeStr(meeting, "location") : "";
 
-    return (
-      <dl className="mt-1 space-y-0.5 text-[11px] text-slate-700">
-        {contactName && (
-          <div>
-            <dt className="inline text-slate-500">Contact: </dt>
-            <dd className="inline font-medium">{contactName}</dd>
-          </div>
-        )}
-        {contactEmail && (
-          <div>
-            <dt className="inline text-slate-500">Email: </dt>
-            <dd className="inline font-medium">{contactEmail}</dd>
-          </div>
-        )}
-        {topic && (
-          <div>
-            <dt className="inline text-slate-500">Topic: </dt>
-            <dd className="inline font-medium">{topic}</dd>
-          </div>
-        )}
-        {time && (
-          <div>
-            <dt className="inline text-slate-500">When: </dt>
-            <dd className="inline font-medium">{time}</dd>
-          </div>
-        )}
-        {location && (
-          <div>
-            <dt className="inline text-slate-500">Location: </dt>
-            <dd className="inline font-medium">{location}</dd>
-          </div>
-        )}
-      </dl>
-    );
+    return [
+      { label: "Status", value: extraction.status },
+      {
+        label: "Confidence",
+        value:
+          extraction.confidence != null
+            ? `${Math.round(extraction.confidence * 100)}%`
+            : "",
+      },
+      { label: "Contact", value: contactName },
+      { label: "Email", value: contactEmail },
+      { label: "Topic", value: topic },
+      { label: "When", value: time },
+      { label: "Location", value: location },
+    ];
   }
 
   if (type === "support") {
@@ -150,52 +172,23 @@ function renderExtractionDetails(
     const contactEmail = contact ? safeStr(contact, "email") : "";
     const company = safeStr(data, "company");
 
-    return (
-      <dl className="mt-1 space-y-0.5 text-[11px] text-slate-700">
-        {intent && (
-          <div>
-            <dt className="inline text-slate-500">Intent: </dt>
-            <dd className="inline font-medium">{intent}</dd>
-          </div>
-        )}
-        {contactName && (
-          <div>
-            <dt className="inline text-slate-500">Contact: </dt>
-            <dd className="inline font-medium">{contactName}</dd>
-          </div>
-        )}
-        {contactEmail && (
-          <div>
-            <dt className="inline text-slate-500">Email: </dt>
-            <dd className="inline font-medium">{contactEmail}</dd>
-          </div>
-        )}
-        {company && (
-          <div>
-            <dt className="inline text-slate-500">Company: </dt>
-            <dd className="inline font-medium">{company}</dd>
-          </div>
-        )}
-        {issue && (
-          <div>
-            <dt className="inline text-slate-500">Issue: </dt>
-            <dd className="inline font-medium">{issue}</dd>
-          </div>
-        )}
-        {priority && (
-          <div>
-            <dt className="inline text-slate-500">Priority: </dt>
-            <dd className="inline font-medium">{priority}</dd>
-          </div>
-        )}
-        {urgency && (
-          <div>
-            <dt className="inline text-slate-500">Urgency: </dt>
-            <dd className="inline font-medium">{urgency}</dd>
-          </div>
-        )}
-      </dl>
-    );
+    return [
+      { label: "Status", value: extraction.status },
+      {
+        label: "Confidence",
+        value:
+          extraction.confidence != null
+            ? `${Math.round(extraction.confidence * 100)}%`
+            : "",
+      },
+      { label: "Intent", value: intent },
+      { label: "Contact", value: contactName },
+      { label: "Email", value: contactEmail },
+      { label: "Company", value: company },
+      { label: "Issue", value: issue },
+      { label: "Priority", value: priority },
+      { label: "Urgency", value: urgency },
+    ];
   }
 
   if (type === "job_application") {
@@ -203,28 +196,19 @@ function renderExtractionDetails(
     const role = safeStr(data, "role");
     const interviewTime = safeStr(data, "interviewTime");
 
-    return (
-      <dl className="mt-1 space-y-0.5 text-[11px] text-slate-700">
-        {company && (
-          <div>
-            <dt className="inline text-slate-500">Company: </dt>
-            <dd className="inline font-medium">{company}</dd>
-          </div>
-        )}
-        {role && (
-          <div>
-            <dt className="inline text-slate-500">Role: </dt>
-            <dd className="inline font-medium">{role}</dd>
-          </div>
-        )}
-        {interviewTime && (
-          <div>
-            <dt className="inline text-slate-500">Next interview: </dt>
-            <dd className="inline font-medium">{interviewTime}</dd>
-          </div>
-        )}
-      </dl>
-    );
+    return [
+      { label: "Status", value: extraction.status },
+      {
+        label: "Confidence",
+        value:
+          extraction.confidence != null
+            ? `${Math.round(extraction.confidence * 100)}%`
+            : "",
+      },
+      { label: "Company", value: company },
+      { label: "Role", value: role },
+      { label: "Next interview", value: interviewTime },
+    ];
   }
 
   if (type === "general") {
@@ -235,28 +219,34 @@ function renderExtractionDetails(
         )
       : [];
 
-    return (
-      <div className="mt-1 space-y-0.5 text-[11px] text-slate-700">
-        {summary && (
-          <p>
-            <span className="text-slate-500">Summary: </span>
-            <span className="font-medium">{summary}</span>
-          </p>
-        )}
-        {keyEntities.length > 0 && (
-          <p className="text-[10px] text-slate-500">
-            Key entities: {keyEntities.join(", ")}
-          </p>
-        )}
-      </div>
-    );
+    return [
+      { label: "Status", value: extraction.status },
+      {
+        label: "Confidence",
+        value:
+          extraction.confidence != null
+            ? `${Math.round(extraction.confidence * 100)}%`
+            : "",
+      },
+      { label: "Summary", value: summary },
+      {
+        label: "Key entities",
+        value: keyEntities.length > 0 ? keyEntities.join(", ") : "",
+      },
+    ];
   }
 
-  return (
-    <p className="mt-1 text-[11px] text-slate-500">
-      No specific details formatter is defined for this email type.
-    </p>
-  );
+  return [
+    { label: "Status", value: extraction.status },
+    { label: "Type", value: type },
+    {
+      label: "Confidence",
+      value:
+        extraction.confidence != null
+          ? `${Math.round(extraction.confidence * 100)}%`
+          : "",
+    },
+  ];
 }
 
 export function InboxAiDetailsModal({
@@ -266,44 +256,63 @@ export function InboxAiDetailsModal({
   loading = false,
   error = null,
 }: InboxAiDetailsModalProps) {
-  if (!open) return null;
-
   const classification = details?.classification ?? null;
   const extraction = details?.extraction ?? null;
   const message = details?.message ?? null;
   const [showTechnical, setShowTechnical] = useState(false);
 
+  const classificationRows: DetailRow[] = useMemo(() => {
+    if (!classification) return [];
+    return [
+      { label: "Type", value: classification.type },
+      {
+        label: "Confidence",
+        value:
+          classification.confidence != null
+            ? `${Math.round(classification.confidence * 100)}%`
+            : "",
+      },
+    ];
+  }, [classification]);
+
+  const extractionRows: DetailRow[] = useMemo(() => {
+    if (!extraction) return [];
+    return buildExtractionRows(extraction);
+  }, [extraction]);
+
+  if (!open) return null;
+
   return (
     <div
-      className="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/40 px-3"
+      className="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/40 px-3 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby="inbox-ai-details-title"
       onClick={onClose}
     >
       <div
-        className="max-h-[80vh] w-full max-w-lg rounded-2xl bg-white p-4 text-xs shadow-xl ring-1 ring-slate-200"
+        className="max-h-[90vh] w-full max-w-xl rounded-2xl bg-white p-4 text-xs shadow-xl ring-1 ring-slate-200"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="mb-2 flex items-center justify-between gap-2">
+        <div className="mb-2 flex items-center justify-between gap-2 border-b border-slate-200 pb-2">
           <h2
             id="inbox-ai-details-title"
-            className="text-[11px] font-semibold text-slate-800"
+            className="text-[12px] font-semibold text-slate-900"
           >
             AI analysis details
           </h2>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full px-2 py-0.5 text-[10px] text-slate-500 hover:bg-slate-100"
+            className="rounded border border-slate-200 px-2 py-0.5 text-[10px] text-slate-600 hover:bg-slate-50"
           >
             Close
           </button>
         </div>
 
         {message && (
-          <div className="mb-2 border-b border-slate-100 pb-2 text-[10px] text-slate-500">
-            <p className="truncate text-[11px] font-medium text-slate-800">
+          <div className="mb-3 text-[10px] text-slate-500">
+            <p className="truncate text-[11px] font-medium text-slate-900">
               {message.subject ?? "(no subject)"}
             </p>
           </div>
@@ -325,50 +334,36 @@ export function InboxAiDetailsModal({
 
         {!loading && !error && (classification || extraction) && (
           <div className="space-y-3 overflow-y-auto text-[11px]">
-            {classification && (
-              <section className="rounded-xl bg-slate-50 p-2">
-                <h3 className="mb-1 text-[10px] font-semibold text-slate-700">
-                  Classification
-                </h3>
-                <p className="text-slate-600">
-                  Type:{" "}
-                  <span className="font-medium">{classification.type}</span>
-                </p>
-              </section>
-            )}
+            <section className="space-y-2">
+              {classification && (
+                <div>
+                  <h3 className="mb-1 text-[10px] font-semibold text-slate-700">
+                    Classification
+                  </h3>
+                  <DetailsTable rows={classificationRows} />
+                </div>
+              )}
 
-            {extraction && (
-              <section className="rounded-xl bg-slate-50 p-2">
-                <h3 className="mb-1 text-[10px] font-semibold text-slate-700">
-                  Extraction
-                </h3>
-                <p className="text-slate-600">
-                  Status:{" "}
-                  <span className="font-medium">{extraction.status}</span>
-                </p>
-                <p className="text-slate-600">
-                  Type: <span className="font-medium">{extraction.type}</span>
-                </p>
-                <p className="text-slate-600">
-                  Confidence:{" "}
-                  <span className="font-medium">
-                    {extraction.confidence != null
-                      ? `${Math.round(extraction.confidence * 100)}%`
-                      : "—"}
-                  </span>
-                </p>
-                {renderExtractionDetails(extraction)}
-              </section>
-            )}
+              {extraction && (
+                <div>
+                  <h3 className="mb-1 text-[10px] font-semibold text-slate-700">
+                    Extraction
+                  </h3>
+                  <DetailsTable rows={extractionRows} />
+                </div>
+              )}
+            </section>
 
             {(message || classification || extraction) && (
-              <section className="rounded-xl bg-slate-50 p-2">
+              <section className="mt-1 border-t border-slate-200 pt-2">
                 <button
                   type="button"
                   className="mb-1 text-[10px] font-medium text-sky-700 hover:underline"
                   onClick={() => setShowTechnical((v) => !v)}
                 >
-                  {showTechnical ? "Hide technical details" : "Show technical details"}
+                  {showTechnical
+                    ? "Hide technical details"
+                    : "Show technical details"}
                 </button>
                 {showTechnical && (
                   <div className="space-y-2 text-[10px] text-slate-500">
@@ -382,8 +377,8 @@ export function InboxAiDetailsModal({
                     )}
                     {classification && (
                       <p>
-                        Classification model: {classification.modelName} · Prompt v
-                        {classification.promptVersion}
+                        Classification model: {classification.modelName} ·
+                        Prompt v{classification.promptVersion}
                       </p>
                     )}
                     {extraction && (
@@ -395,7 +390,8 @@ export function InboxAiDetailsModal({
                         </p>
                         {extraction.missingFields.length > 0 && (
                           <p>
-                            Missing fields: {extraction.missingFields.join(", ")}
+                            Missing fields:{" "}
+                            {extraction.missingFields.join(", ")}
                           </p>
                         )}
                         {extraction.warnings.length > 0 && (
@@ -409,7 +405,11 @@ export function InboxAiDetailsModal({
                               Raw extracted data
                             </p>
                             <pre className="max-h-40 overflow-auto rounded-lg bg-slate-900 px-2 py-1 text-[9px] text-slate-100">
-                              {JSON.stringify(extraction.extractedData, null, 2)}
+                              {JSON.stringify(
+                                extraction.extractedData,
+                                null,
+                                2,
+                              )}
                             </pre>
                           </div>
                         )}

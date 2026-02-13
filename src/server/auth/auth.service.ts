@@ -15,6 +15,7 @@ import {
   type AccessTokenPayload,
 } from "./tokens";
 import { ApiError } from "@/src/server/utils/api";
+import { type GoogleProfile } from "./google.service";
 
 type PublicUser = {
   id: string;
@@ -169,6 +170,14 @@ export async function loginUser(
     });
   }
 
+  if (!user.passwordHash) {
+    throw new ApiError({
+      status: 401,
+      code: "INVALID_CREDENTIALS",
+      message: "Invalid credentials.",
+    });
+  }
+
   const isValidPassword = await verifyPassword(password, user.passwordHash);
   if (!isValidPassword) {
     throw new ApiError({
@@ -176,6 +185,112 @@ export async function loginUser(
       code: "INVALID_CREDENTIALS",
       message: "Invalid credentials.",
     });
+  }
+
+  const publicUser = toPublicUser(user);
+
+  const ip = getClientIp(req);
+  const userAgent =
+    typeof req.headers["user-agent"] === "string"
+      ? req.headers["user-agent"]
+      : undefined;
+
+  const access = createAccessToken({
+    userId: publicUser.id,
+    nickname: publicUser.nickname,
+  });
+
+  const session = await Session.create({
+    userId: user._id,
+    refreshTokenHash: "",
+    ip,
+    userAgent,
+    expiresAt: new Date(),
+  });
+
+  const refresh = createRefreshToken({
+    userId: publicUser.id,
+    sessionId: session._id.toHexString(),
+  });
+
+  const hashedRefresh = await hashPassword(refresh.token);
+  session.refreshTokenHash = hashedRefresh;
+  session.expiresAt = refresh.expiresAt;
+  await session.save();
+
+  return {
+    user: publicUser,
+    accessToken: access.token,
+    refreshToken: refresh.token,
+    refreshExpiresAt: refresh.expiresAt,
+  };
+}
+
+export async function loginOrRegisterWithGoogle(
+  req: NextApiRequest,
+  profile: GoogleProfile,
+): Promise<{
+  user: PublicUser;
+  accessToken: string;
+  refreshToken: string;
+  refreshExpiresAt: Date;
+}> {
+  await dbConnect();
+
+  const email = profile.email?.toLowerCase();
+
+  let user =
+    (await User.findOne({
+      provider: "google",
+      providerId: profile.id,
+    })) ?? (email ? await User.findOne({ email }) : null);
+
+  if (!user) {
+    // Derive a nickname from email or name, ensuring uniqueness.
+    let baseNickname =
+      (email?.split("@")[0] ??
+        profile.name?.toLowerCase().replace(/\s+/g, "") ??
+        "user") || "user";
+
+    baseNickname = baseNickname.toLowerCase();
+
+    let nickname = baseNickname;
+    let suffix = 1;
+    // Ensure nickname uniqueness
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      const existing = await User.findOne({
+        nickname: nickname,
+      }).lean();
+      if (!existing) break;
+      nickname = `${baseNickname}${suffix}`;
+      suffix += 1;
+    }
+
+    user = await User.create({
+      nickname,
+      email,
+      provider: "google",
+      providerId: profile.id,
+      name: profile.name,
+      pictureUrl: profile.picture,
+      status: "active",
+      // passwordHash intentionally omitted for Google-only users
+    });
+  } else {
+    // Link existing user to Google if not already linked and update profile info.
+    if (!user.provider || !user.providerId) {
+      user.provider = "google";
+      user.providerId = profile.id;
+    }
+    if (profile.name && !user.name) {
+      user.name = profile.name;
+    }
+    if (profile.picture && !user.pictureUrl) {
+      user.pictureUrl = profile.picture;
+    }
+    user.lastLoginAt = new Date();
+    await user.save();
   }
 
   const publicUser = toPublicUser(user);

@@ -1,7 +1,7 @@
 import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { login } from "@/src/lib/auth/api";
+import { getGoogleAuthUrl, login } from "@/src/lib/auth/api";
 import { useAuth } from "@/src/lib/auth/context";
 import styles from "@/styles/Auth.module.css";
 
@@ -28,6 +28,20 @@ export default function LoginPage() {
         err instanceof Error ? err.message : "Unable to log in.";
       setError(message);
     } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleGoogleSignIn() {
+    setError(null);
+    setSubmitting(true);
+    try {
+      const url = await getGoogleAuthUrl();
+      window.location.href = url;
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Unable to sign in with Google.";
+      setError(message);
       setSubmitting(false);
     }
   }
@@ -77,6 +91,15 @@ export default function LoginPage() {
             disabled={submitting}
           >
             {submitting ? "Signing in..." : "Sign in"}
+          </button>
+
+          <button
+            type="button"
+            className={styles.buttonSecondary}
+            onClick={() => void handleGoogleSignIn()}
+            disabled={submitting}
+          >
+            Continue with Google
           </button>
 
           {error && <p className={styles.error}>{error}</p>}
