@@ -158,6 +158,44 @@ export async function fetchTranscript(
     .map((c: unknown) => transcriptChunkSchema.parse(c)) as TranscriptChunkDTO[];
 }
 
+export async function fetchFullTranscript(
+  accessToken: string,
+  meetingId: string,
+): Promise<TranscriptChunkDTO[]> {
+  const all: TranscriptChunkDTO[] = [];
+  let afterSeq: number | undefined;
+
+  // Safety cap to avoid unbounded growth in extreme cases
+  const MAX_CHUNKS = 10_000;
+
+  // Keep fetching until no more chunks are returned or we hit the safety cap
+  // listTranscript on the server side limits each page to 500 chunks
+  // so this will walk through the transcript in batches.
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const batch = await fetchTranscript(accessToken, meetingId, afterSeq);
+
+    if (batch.length === 0) {
+      break;
+    }
+
+    all.push(...batch);
+
+    if (all.length >= MAX_CHUNKS) {
+      break;
+    }
+
+    const last = batch[batch.length - 1];
+    afterSeq = last?.seq;
+
+    if (afterSeq == null) {
+      break;
+    }
+  }
+
+  return all;
+}
+
 export async function finalizeMeeting(
   accessToken: string,
   meetingId: string,
@@ -168,6 +206,26 @@ export async function finalizeMeeting(
   if (!res.ok) {
     const body = await res.text();
     let message = "Failed to finalize meeting";
+    try {
+      const json = JSON.parse(body) as { error?: { message?: string } };
+      if (json?.error?.message) message = json.error.message;
+    } catch {
+      if (body) message = body.slice(0, 200);
+    }
+    throw new Error(message);
+  }
+}
+
+export async function deleteMeeting(
+  accessToken: string,
+  meetingId: string,
+): Promise<void> {
+  const url = `${getBaseUrl()}/api/meetings/${encodeURIComponent(meetingId)}`;
+  const res = await fetchWithAuth(url, accessToken, { method: "DELETE" });
+
+  if (!res.ok) {
+    const body = await res.text();
+    let message = "Failed to delete meeting";
     try {
       const json = JSON.parse(body) as { error?: { message?: string } };
       if (json?.error?.message) message = json.error.message;

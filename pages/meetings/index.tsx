@@ -6,7 +6,10 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { ScheduleMeetingModal } from "@/components/meetings/ScheduleMeetingModal";
 import { MeetingsTable } from "@/components/meetings/MeetingsTable";
 import { useMeetings } from "@/src/features/meetings/useMeetings";
-import { scheduleMeeting } from "@/src/features/meetings/meetingsClient";
+import {
+  scheduleMeeting,
+  deleteMeeting,
+} from "@/src/features/meetings/meetingsClient";
 import type { MailFolder } from "@/src/lib/mail/types";
 
 export default function MeetingsPage() {
@@ -16,6 +19,7 @@ export default function MeetingsPage() {
 
   const [modalOpen, setModalOpen] = useState(false);
   const [finalizingId, setFinalizingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const handleLogout = () => {
     signOut();
@@ -61,6 +65,19 @@ export default function MeetingsPage() {
     }
   };
 
+  const handleDelete = async (meeting: { id: string }) => {
+    if (!accessToken) return;
+    setDeletingId(meeting.id);
+    try {
+      await deleteMeeting(accessToken, meeting.id);
+      await mutate();
+    } catch {
+      setDeletingId(null);
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   return (
     <RequireAuth>
       <AppLayout
@@ -93,6 +110,8 @@ export default function MeetingsPage() {
               items={data?.items ?? []}
               onFinalize={handleFinalize}
               finalizingId={finalizingId}
+              onDelete={handleDelete}
+              deletingId={deletingId}
             />
           )}
         </div>

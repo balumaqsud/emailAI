@@ -26,7 +26,7 @@ export function Sidebar({
   return (
     <aside className="flex w-60 flex-col gap-4 rounded-3xl bg-slate-50/80 text-slate-800 px-3 py-4 text-xs ring-1 ring-slate-100">
       <header className="mb-1 flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
+        <Link href="/" className="flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-2xl bg-sky-100 text-[11px] font-semibold text-sky-600">
             S
           </div>
@@ -34,7 +34,7 @@ export function Sidebar({
             <p className="text-[13px] font-semibold text-slate-900">SignMail</p>
             <p className="text-[11px] text-slate-400">AI Email workspace</p>
           </div>
-        </div>
+        </Link>
       </header>
 
       <SidebarSection>

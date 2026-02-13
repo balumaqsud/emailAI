@@ -302,3 +302,24 @@ export async function finalizeMeeting(meetingId: string): Promise<void> {
   meeting.status = "completed";
   await meeting.save();
 }
+
+export async function deleteMeeting(
+  userId: string,
+  meetingId: string,
+): Promise<void> {
+  await dbConnect();
+
+  const meeting = await Meeting.findOne({
+    _id: new mongoose.Types.ObjectId(meetingId),
+    ownerUserId: new mongoose.Types.ObjectId(userId),
+  });
+  if (!meeting) {
+    throw notFound("Meeting not found.");
+  }
+
+  const meetingObjId = meeting._id;
+  await TranscriptChunk.deleteMany({ meetingId: meetingObjId });
+  await MeetingArtifact.deleteMany({ meetingId: meetingObjId });
+  await RecallBot.deleteMany({ meetingId: meetingObjId });
+  await Meeting.deleteOne({ _id: meetingObjId });
+}

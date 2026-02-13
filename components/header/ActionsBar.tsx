@@ -26,18 +26,6 @@ export function ActionsBar({ onCompose }: ActionsBarProps) {
       >
         Compose
       </Button>
-      <button
-        type="button"
-        className="flex h-8 w-8 items-center justify-center rounded-xl bg-white text-slate-500 shadow-sm ring-1 ring-slate-100 hover:bg-slate-50"
-      >
-        ⬇
-      </button>
-      <button
-        type="button"
-        className="flex h-8 w-8 items-center justify-center rounded-xl bg-white text-slate-500 shadow-sm ring-1 ring-slate-100 hover:bg-slate-50"
-      >
-        ☰
-      </button>
     </div>
   );
 }
